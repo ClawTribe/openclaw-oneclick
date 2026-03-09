@@ -55,8 +55,6 @@ if ! command -v git &> /dev/null; then
     exit 1
 fi
 
-# 确保 NPM 底层依赖拉取时不会因为缺少 SSH Key 报错
-git config --global url."https://github.com/".insteadOf git@github.com:
 
 # 2. OpenClaw 核心安装
 if ! command -v openclaw &> /dev/null; then
