@@ -59,7 +59,18 @@ fi
 # 2. OpenClaw 核心安装
 if ! command -v openclaw &> /dev/null; then
     echo -e "\n${YELLOW}[3/5] 正在全局安装 OpenClaw 核心...${NC}"
-    sudo -E npm install -g openclaw --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo || npm install -g openclaw --registry="$npm_config_registry"
+    # 尝试清理可能由于先前磁盘满遗留的损坏的全局包缓存
+    sudo rm -rf /usr/local/lib/node_modules/openclaw 2>/dev/null
+    
+    # 优先尝试 sudo 安装（系统级 Node），如果失败则尝试普通安装（NVM/Termux 等环境）
+    if sudo -E npm install -g openclaw --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo; then
+        echo -e "   ${GREEN}✓ OpenClaw 安装完成${NC}"
+    elif npm install -g openclaw --registry="$npm_config_registry"; then
+        echo -e "   ${GREEN}✓ OpenClaw 安装完成${NC}"
+    else
+        echo -e "${RED}❌ 全局安装 OpenClaw 核心失败！请检查上方报错（可能需要清理缓存或重新安装 Node.js）。${NC}"
+        exit 1
+    fi
 else
     echo -e "\n${YELLOW}[3/5] OpenClaw 核心检查...${NC}"
     echo -e "   ${GREEN}✓ OpenClaw 已安装${NC}"
@@ -94,10 +105,15 @@ npm install --production --registry="$npm_config_registry" || {
 # 链接全局命令
 echo -e "\n${YELLOW}[5/5] 配置系统全局命令...${NC}"
 chmod +x src/index.js
-sudo -E npm install -g . --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo || npm install -g . --registry="$npm_config_registry" || {
+sudo rm -rf /usr/local/lib/node_modules/openclaw-oneclick 2>/dev/null
+if sudo -E npm install -g . --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo; then
+    echo -e "   ${GREEN}✓ 全局命令链接成功${NC}"
+elif npm install -g . --registry="$npm_config_registry"; then
+    echo -e "   ${GREEN}✓ 全局命令链接成功${NC}"
+else
     echo -e "${RED}❌ 全局命令注册失败！${NC}"
     exit 1
-}
+fi
 
 # 4. 完成
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
