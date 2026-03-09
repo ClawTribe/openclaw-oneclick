@@ -59,6 +59,7 @@ if [ -n "$NODEJS_INSTALLED" ]; then
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
             source ~/.nvm/nvm.sh
         fi
+        export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/binaries/node
         nvm install 22
         nvm use 22
     elif command -v apt-get &> /dev/null; then
@@ -67,6 +68,7 @@ if [ -n "$NODEJS_INSTALLED" ]; then
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
             source ~/.nvm/nvm.sh
         fi
+        export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/binaries/node
         nvm install 22
         nvm use 22
     elif command -v yum &> /dev/null; then
@@ -75,6 +77,7 @@ if [ -n "$NODEJS_INSTALLED" ]; then
             curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
             source ~/.nvm/nvm.sh
         fi
+        export NVM_NODEJS_ORG_MIRROR=https://npmmirror.com/binaries/node
         nvm install 22
         nvm use 22
     else
