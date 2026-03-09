@@ -63,4 +63,4 @@ npm install --production
 Write-Host "`n[4/4] 配置系统全局命令..." -ForegroundColor Yellow
 npm install -g .
 
-Write-Host "`n🎉 Deployment Successful! Run 'openclaw-jun' to start." -ForegroundColor Green
+Write-Host "`n🎉 Deployment Successful! Run 'openclaw-setup' to start." -ForegroundColor Green

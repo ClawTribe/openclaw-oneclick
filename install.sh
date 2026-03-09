@@ -87,5 +87,5 @@ sudo -E npm install -g . || npm install -g .
 # 4. 完成
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
 echo -e "${GREEN}✓ 部署成功！${NC}"
-echo -e "  运行 ${YELLOW}openclaw-jun${NC} 开始使用"
+echo -e "  运行 ${YELLOW}openclaw-setup${NC} 开始使用"
 echo -e "${GREEN}──────────────────────────────────────────────────${NC}"

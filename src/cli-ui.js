@@ -72,7 +72,7 @@ module.exports = {
     getHeader(version) {
         const line = '━'.repeat(50);
 
-        let header = `\n${colors.bgYellow}${colors.black}  🔧 JUN  ${colors.reset}`;
+        let header = `\n${colors.bgYellow}${colors.black}  🔧 CLAW  ${colors.reset}`;
         header += ` ${colors.bold}OpenClaw 配置管理${colors.reset}`;
         header += `${colors.gray}  v${version}${colors.reset}\n`;
         header += `${colors.yellow}${line}${colors.reset}\n`;

@@ -40,7 +40,7 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 ## 使用方法
 
 ```bash
-openclaw-jun
+openclaw-setup
 ```
 
 ### 配置分类

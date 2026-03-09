@@ -1,10 +1,10 @@
 {
-    "name": "openclaw-for-jun",
+    "name": "openclaw-oneclick",
     "version": "3.0.11",
     "description": "OpenClaw 一键安装与全中文管理工具",
     "main": "src/index.js",
     "bin": {
-        "openclaw-jun": "src/index.js"
+        "openclaw-setup": "src/index.js"
     },
     "author": "ClawTribe",
     "license": "MIT",
