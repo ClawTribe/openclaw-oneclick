@@ -37,16 +37,22 @@ if ! command -v node &> /dev/null; then
     if command -v brew &> /dev/null; then
         brew install node
     elif command -v apt-get &> /dev/null; then
-        sudo apt-get update && sudo apt-get install -y nodejs npm
+        sudo apt-get update && sudo apt-get install -y nodejs npm git
     elif command -v yum &> /dev/null; then
-        sudo yum install -y nodejs npm
+        sudo yum install -y nodejs npm git
     else
-        echo -e "${RED}请手动安装 Node.js v22+${NC}"
+        echo -e "${RED}请手动安装 Node.js v22+ 和 Git${NC}"
         exit 1
     fi
 else
     echo -e "\n${YELLOW}[2/5] Node.js 环境检查...${NC}"
     echo -e "   ${GREEN}✓ Node.js 已安装${NC}"
+fi
+
+# 检查 Git
+if ! command -v git &> /dev/null; then
+    echo -e "${RED}❌ 未检测到 Git，请先安装 Git${NC}"
+    exit 1
 fi
 
 # 2. OpenClaw 核心安装
