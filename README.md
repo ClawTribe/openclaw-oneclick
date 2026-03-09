@@ -26,14 +26,18 @@
 ### macOS / Linux
 
 ```bash
-curl -sSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
+    curl -sSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
 ```
+
+安装脚本会优先调用 OpenClaw 官方安装器完成核心安装；如果在中国大陆网络环境下遇到 npm 或 GitHub 访问问题，会自动尝试当前安装进程内的 fallback，不会主动改写你的全局 npm 配置。
 
 ### Windows (PowerShell 管理员)
 
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1'))
 ```
+
+Windows 脚本与 macOS / Linux 版本保持同一安装职责：先检查基础环境，再优先调用 OpenClaw 官方安装器，最后安装并注册 [`openclaw-setup`](package.json:6)。
 
 ---
 
@@ -63,6 +67,7 @@ openclaw-setup
 | --------------------------- | ----------------------------------------- |
 | `command not found: node` | 安装 Node.js v22+ 并添加到 PATH           |
 | `Permission denied`       | macOS/Linux 加 `sudo`，Windows 用管理员 |
+| 缺少 `curl` / `git` / `sudo` | 安装脚本会先尝试自动补齐；若系统过于精简，会输出可直接复制的准备命令 |
 | 网关启动失败                | 运行 `openclaw doctor` 诊断             |
 | 配置不生效                  | 运行 `openclaw gateway restart`         |
 

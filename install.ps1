@@ -10,6 +10,9 @@ $FallbackProjectGit = 'https://ghfast.top/https://github.com/ClawTribe/openclaw-
 $OfficialNpmRegistry = 'https://registry.npmjs.org/'
 $FallbackNpmRegistry = 'https://registry.npmmirror.com'
 $TempDir = $null
+$PreferredInstallUrl = 'https://openclaw.ai/install.ps1'
+$PreferredProjectGit = 'https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git'
+$PreferredNpmRegistry = 'https://registry.npmmirror.com'
 
 Write-Host @"
     ┌──────────────────────────────────────────────────┐
@@ -53,13 +56,13 @@ function Test-UrlAccess {
 function Invoke-NpmCommand {
     param([string[]]$Arguments)
 
-    & npm @Arguments --registry=$OfficialNpmRegistry
+    & npm @Arguments --registry=$PreferredNpmRegistry
     if ($LASTEXITCODE -eq 0) {
         return $true
     }
 
-    Write-Host '   ⚠ 官方 npm 源失败，切换到国内镜像重试...' -ForegroundColor Yellow
-    & npm @Arguments --registry=$FallbackNpmRegistry
+    Write-Host '   ⚠ 国内 npm 镜像失败，回退官方 npm 源重试...' -ForegroundColor Yellow
+    & npm @Arguments --registry=$OfficialNpmRegistry
     return ($LASTEXITCODE -eq 0)
 }
 
@@ -81,11 +84,9 @@ function Require-BootstrapTools {
         Write-Host '   建议先安装 winget、Chocolatey 或 Scoop，以便自动补齐 Git 等基础工具' -ForegroundColor Yellow
     }
 
-    if (Test-UrlAccess 'https://openclaw.ai/install.ps1') {
-        Write-Host '   ✓ 官方安装器地址可访问' -ForegroundColor Green
-    } else {
-        Write-Host '   ⚠ 官方安装器地址当前不可达，后续可能需要代理或镜像' -ForegroundColor Yellow
-    }
+    Write-Host "   ✓ 当前默认采用中国大陆优先模式" -ForegroundColor Green
+    Write-Host "   npm 默认使用 $PreferredNpmRegistry" -ForegroundColor Green
+    Write-Host '   GitHub 默认使用代理地址' -ForegroundColor Green
 }
 
 function Install-GitIfNeeded {
@@ -119,28 +120,35 @@ function Install-GitIfNeeded {
 function Invoke-OfficialInstaller {
     Ensure-TempDir
 
-    Write-Host "`n[3/6] 安装 OpenClaw 核心（优先官方安装器）..." -ForegroundColor Yellow
+    Write-Host "`n[3/6] 安装 OpenClaw 核心（国内优先模式）..." -ForegroundColor Yellow
 
     $installerFile = Join-Path $script:TempDir 'openclaw-install.ps1'
     try {
-        Invoke-WebRequest -UseBasicParsing -Uri $OfficialInstallUrl -OutFile $installerFile
+        Invoke-WebRequest -UseBasicParsing -Uri $PreferredInstallUrl -OutFile $installerFile
         Write-Host '   ✓ 官方安装器下载成功' -ForegroundColor Green
     } catch {
-        Write-Host '❌ 官方安装器下载失败，请检查网络后重试' -ForegroundColor Red
-        exit 1
+        Write-Host '   ⚠ 首选链路失败，回退官方直连重试...' -ForegroundColor Yellow
+        try {
+            Invoke-WebRequest -UseBasicParsing -Uri $OfficialInstallUrl -OutFile $installerFile
+            Write-Host '   ✓ 已通过官方直连获取安装器' -ForegroundColor Green
+        } catch {
+            Write-Host '❌ 官方安装器下载失败，请检查网络后重试' -ForegroundColor Red
+            exit 1
+        }
     }
 
+    $env:npm_config_registry = $PreferredNpmRegistry
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
         Write-Host '   ✓ OpenClaw 核心安装完成' -ForegroundColor Green
         return
     }
 
-    Write-Host '   ⚠ 官方安装流程失败，尝试以当前进程环境注入国内 npm 镜像后重试...' -ForegroundColor Yellow
-    $env:npm_config_registry = $FallbackNpmRegistry
+    Write-Host '   ⚠ 国内优先链路失败，回退官方 npm 源重试...' -ForegroundColor Yellow
+    $env:npm_config_registry = $OfficialNpmRegistry
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
-        Write-Host '   ✓ OpenClaw 核心安装完成（fallback）' -ForegroundColor Green
+        Write-Host '   ✓ OpenClaw 核心安装完成（官方回退）' -ForegroundColor Green
         return
     }
 
@@ -153,20 +161,20 @@ function Sync-ProjectCode {
 
     if (Test-Path (Join-Path $InstallDir '.git')) {
         Set-Location $InstallDir
-        git remote set-url origin $OfficialProjectGit | Out-Null
+        git remote set-url origin $PreferredProjectGit | Out-Null
         git fetch --all
         if ($LASTEXITCODE -ne 0) {
-            Write-Host '   ⚠ 官方 GitHub 拉取失败，切换代理重试...' -ForegroundColor Yellow
-            git remote set-url origin $FallbackProjectGit | Out-Null
+            Write-Host '   ⚠ 国内代理拉取失败，回退官方 GitHub 重试...' -ForegroundColor Yellow
+            git remote set-url origin $OfficialProjectGit | Out-Null
             git fetch --all
             if ($LASTEXITCODE -ne 0) { exit 1 }
         }
         git reset --hard origin/main
     } else {
-        git clone $OfficialProjectGit $InstallDir
+        git clone $PreferredProjectGit $InstallDir
         if ($LASTEXITCODE -ne 0) {
-            Write-Host '   ⚠ 官方 GitHub 克隆失败，切换代理重试...' -ForegroundColor Yellow
-            git clone $FallbackProjectGit $InstallDir
+            Write-Host '   ⚠ 国内代理克隆失败，回退官方 GitHub 重试...' -ForegroundColor Yellow
+            git clone $OfficialProjectGit $InstallDir
             if ($LASTEXITCODE -ne 0) { exit 1 }
         }
         Set-Location $InstallDir

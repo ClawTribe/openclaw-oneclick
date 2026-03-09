@@ -17,7 +17,9 @@ FALLBACK_PROJECT_GIT="https://ghfast.top/https://github.com/ClawTribe/openclaw-o
 OFFICIAL_NPM_REGISTRY="https://registry.npmjs.org/"
 FALLBACK_NPM_REGISTRY="https://registry.npmmirror.com"
 TMP_DIR=""
-HAS_FALLBACK_NPM="0"
+PREFERRED_INSTALL_URL="https://openclaw.ai/install.sh"
+PREFERRED_PROJECT_GIT="https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git"
+PREFERRED_NPM_REGISTRY="https://registry.npmmirror.com"
 
 echo -e "${CYAN}
 ──────────────────────────────────────────────────
@@ -102,17 +104,20 @@ require_bootstrap_tools() {
             echo -e "   ${YELLOW}  请切换到 ${CYAN}root${NC} 用户执行，或先安装 ${CYAN}sudo${NC}${NC}"
         fi
     fi
+
+    echo -e "   ${GREEN}✓ 当前默认采用中国大陆优先模式${NC}"
+    echo -e "   ${GREEN}  npm 默认使用 ${PREFERRED_NPM_REGISTRY}${NC}"
+    echo -e "   ${GREEN}  GitHub 默认使用代理地址${NC}"
 }
 
 run_npm_command() {
     local npm_args=("$@")
-    if npm "${npm_args[@]}" --registry="$OFFICIAL_NPM_REGISTRY"; then
+    if npm "${npm_args[@]}" --registry="$PREFERRED_NPM_REGISTRY"; then
         return 0
     fi
 
-    log_info "   ${YELLOW}⚠ 官方 npm 源失败，切换到国内镜像重试...${NC}"
-    HAS_FALLBACK_NPM="1"
-    npm "${npm_args[@]}" --registry="$FALLBACK_NPM_REGISTRY"
+    log_info "   ${YELLOW}⚠ 国内 npm 镜像失败，回退官方 npm 源重试...${NC}"
+    npm "${npm_args[@]}" --registry="$OFFICIAL_NPM_REGISTRY"
 }
 
 install_git_if_needed() {
@@ -152,27 +157,32 @@ install_git_if_needed() {
 run_official_installer() {
     ensure_tmp_dir
 
-    echo -e "\n${YELLOW}[3/6] 安装 OpenClaw 核心（优先官方安装器）...${NC}"
+    echo -e "\n${YELLOW}[3/6] 安装 OpenClaw 核心（国内优先模式）...${NC}"
 
     local installer_file="$TMP_DIR/openclaw-install.sh"
-    if curl -fsSL --proto '=https' --tlsv1.2 "$OFFICIAL_INSTALL_URL" -o "$installer_file"; then
+    if curl -fsSL --proto '=https' --tlsv1.2 "$PREFERRED_INSTALL_URL" -o "$installer_file"; then
         echo -e "   ${GREEN}✓ 官方安装器下载成功${NC}"
     else
-        echo -e "${RED}❌ 官方安装器下载失败，请检查网络后重试${NC}"
-        exit 1
+        echo -e "   ${YELLOW}⚠ 首选链路失败，回退官方直连重试...${NC}"
+        if curl -fsSL --proto '=https' --tlsv1.2 "$OFFICIAL_INSTALL_URL" -o "$installer_file"; then
+            echo -e "   ${GREEN}✓ 已通过官方直连获取安装器${NC}"
+        else
+            echo -e "${RED}❌ 官方安装器下载失败，请检查网络后重试${NC}"
+            exit 1
+        fi
     fi
 
     chmod +x "$installer_file"
 
-    if OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
+    if npm_config_registry="$PREFERRED_NPM_REGISTRY" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成${NC}"
         return 0
     fi
 
-    echo -e "   ${YELLOW}⚠ 官方安装流程失败，尝试以当前进程环境注入国内 npm 镜像后重试...${NC}"
+    echo -e "   ${YELLOW}⚠ 国内优先链路失败，回退官方 npm 源重试...${NC}"
 
-    if npm_config_registry="$FALLBACK_NPM_REGISTRY" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
-        echo -e "   ${GREEN}✓ OpenClaw 核心安装完成（fallback）${NC}"
+    if OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
+        echo -e "   ${GREEN}✓ OpenClaw 核心安装完成（官方回退）${NC}"
         return 0
     fi
 
@@ -183,20 +193,20 @@ run_official_installer() {
 sync_project_code() {
     echo -e "\n${YELLOW}[4/6] 同步管理工具代码...${NC}"
 
-    local clone_url="$OFFICIAL_PROJECT_GIT"
+    local clone_url="$PREFERRED_PROJECT_GIT"
     if [ -d "$INSTALL_DIR/.git" ]; then
         cd "$INSTALL_DIR"
-        git remote set-url origin "$OFFICIAL_PROJECT_GIT" || true
+        git remote set-url origin "$PREFERRED_PROJECT_GIT" || true
         if ! git fetch --all && git reset --hard origin/main; then
-            echo -e "   ${YELLOW}⚠ 官方 GitHub 拉取失败，切换代理重试...${NC}"
-            git remote set-url origin "$FALLBACK_PROJECT_GIT"
+            echo -e "   ${YELLOW}⚠ 国内代理拉取失败，回退官方 GitHub 重试...${NC}"
+            git remote set-url origin "$OFFICIAL_PROJECT_GIT"
             git fetch --all
             git reset --hard origin/main
         fi
     else
         if ! git clone "$clone_url" "$INSTALL_DIR"; then
-            echo -e "   ${YELLOW}⚠ 官方 GitHub 克隆失败，切换代理重试...${NC}"
-            git clone "$FALLBACK_PROJECT_GIT" "$INSTALL_DIR"
+            echo -e "   ${YELLOW}⚠ 国内代理克隆失败，回退官方 GitHub 重试...${NC}"
+            git clone "$OFFICIAL_PROJECT_GIT" "$INSTALL_DIR"
         fi
         cd "$INSTALL_DIR"
     fi
