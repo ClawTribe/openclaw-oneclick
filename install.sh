@@ -77,12 +77,19 @@ fi
 
 # 安装依赖
 echo -e "${YELLOW}   安装内部依赖 (自动适配镜像源)...${NC}"
-npm install --production
+npm install --production || {
+    echo -e "${RED}❌ 依赖安装失败！可能遇到权限问题。${NC}"
+    echo -e "💡 建议执行 ${CYAN}sudo chown -R \$USER:\$USER ~/.npm${NC} 修复缓存权限后，重新运行安装脚本。"
+    exit 1
+}
 
 # 链接全局命令
 echo -e "\n${YELLOW}[5/5] 配置系统全局命令...${NC}"
 chmod +x src/index.js
-sudo -E npm install -g . || npm install -g .
+sudo -E npm install -g . || npm install -g . || {
+    echo -e "${RED}❌ 全局命令注册失败！${NC}"
+    exit 1
+}
 
 # 4. 完成
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
