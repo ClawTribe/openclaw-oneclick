@@ -78,8 +78,9 @@ fi
 # 安装依赖
 echo -e "${YELLOW}   安装内部依赖 (自动适配镜像源)...${NC}"
 npm install --production || {
-    echo -e "${RED}❌ 依赖安装失败！可能遇到权限问题。${NC}"
-    echo -e "💡 建议执行 ${CYAN}sudo chown -R \$USER:\$USER ~/.npm${NC} 修复缓存权限后，重新运行安装脚本。"
+    echo -e "${RED}❌ 依赖安装失败！可能遇到权限问题或磁盘空间不足。${NC}"
+    echo -e "💡 建议执行 ${CYAN}sudo chown -R \$USER:\$USER ~/.npm${NC} 修复缓存权限"
+    echo -e "💡 或者执行 ${CYAN}df -h${NC} 检查磁盘容量 (ENOSPC)。修复后重新运行安装脚本。"
     exit 1
 }
 
