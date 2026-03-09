@@ -52,7 +52,7 @@ fi
 # 2. OpenClaw 核心安装
 if ! command -v openclaw &> /dev/null; then
     echo -e "\n${YELLOW}[3/5] 正在全局安装 OpenClaw 核心...${NC}"
-    sudo -E npm install -g openclaw --cache /tmp/npm-cache-sudo || npm install -g openclaw
+    sudo -E npm install -g openclaw --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo || npm install -g openclaw --registry="$npm_config_registry"
 else
     echo -e "\n${YELLOW}[3/5] OpenClaw 核心检查...${NC}"
     echo -e "   ${GREEN}✓ OpenClaw 已安装${NC}"
@@ -77,7 +77,7 @@ fi
 
 # 安装依赖
 echo -e "${YELLOW}   安装内部依赖 (自动适配镜像源)...${NC}"
-npm install --production || {
+npm install --production --registry="$npm_config_registry" || {
     echo -e "${RED}❌ 依赖安装失败！可能遇到权限问题或磁盘空间不足。${NC}"
     echo -e "💡 建议执行 ${CYAN}sudo chown -R \$USER:\$USER ~/.npm${NC} 修复缓存权限"
     echo -e "💡 或者执行 ${CYAN}df -h${NC} 检查磁盘容量 (ENOSPC)。修复后重新运行安装脚本。"
@@ -87,7 +87,7 @@ npm install --production || {
 # 链接全局命令
 echo -e "\n${YELLOW}[5/5] 配置系统全局命令...${NC}"
 chmod +x src/index.js
-sudo -E npm install -g . --cache /tmp/npm-cache-sudo || npm install -g . || {
+sudo -E npm install -g . --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo || npm install -g . --registry="$npm_config_registry" || {
     echo -e "${RED}❌ 全局命令注册失败！${NC}"
     exit 1
 }

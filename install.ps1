@@ -57,7 +57,7 @@ if (Test-Path $InstallDir) {
 }
 
 Write-Host "   - 安装内部依赖 (自动适配镜像源)..." -ForegroundColor Yellow
-npm install --production
+npm install --production --registry="$env:npm_config_registry"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n❌ 部署失败: 内部依赖安装出错。可能遇到权限问题。" -ForegroundColor Red
     exit 1
@@ -65,7 +65,7 @@ if ($LASTEXITCODE -ne 0) {
 
 # 4. Register Command
 Write-Host "`n[4/4] 配置系统全局命令..." -ForegroundColor Yellow
-npm install -g .
+npm install -g . --registry="$env:npm_config_registry"
 if ($LASTEXITCODE -ne 0) {
     Write-Host "`n❌ 部署失败: 全局命令注册出错。请检查权限或 Node.js 安装。" -ForegroundColor Red
     exit 1
