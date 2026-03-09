@@ -62,6 +62,11 @@ if ! command -v openclaw &> /dev/null; then
     # 尝试清理可能由于先前磁盘满遗留的损坏的全局包缓存
     sudo rm -rf /usr/local/lib/node_modules/openclaw 2>/dev/null
     
+    # 核心修复：配置 Root 用户的 git，强行将 ssh 转换为 https，避免缺少 SSH Key 导致 NPM 底层 C++ 依赖拉取失败！
+    # （因为只修改 Root 账户的配置，绝对不会污染普通用户的日常 git push 环境）
+    sudo git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+    sudo git config --global url."https://github.com/".insteadOf "git@github.com:"
+    
     # 优先尝试 sudo 安装（系统级 Node），如果失败则尝试普通安装（NVM/Termux 等环境）
     if sudo -E npm install -g openclaw --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo; then
         echo -e "   ${GREEN}✓ OpenClaw 安装完成${NC}"
