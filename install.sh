@@ -52,7 +52,7 @@ fi
 # 2. OpenClaw 核心安装
 if ! command -v openclaw &> /dev/null; then
     echo -e "\n${YELLOW}[3/5] 正在全局安装 OpenClaw 核心...${NC}"
-    sudo -E npm install -g openclaw || npm install -g openclaw
+    sudo -E npm install -g openclaw --cache /tmp/npm-cache-sudo || npm install -g openclaw
 else
     echo -e "\n${YELLOW}[3/5] OpenClaw 核心检查...${NC}"
     echo -e "   ${GREEN}✓ OpenClaw 已安装${NC}"
@@ -86,7 +86,7 @@ npm install --production || {
 # 链接全局命令
 echo -e "\n${YELLOW}[5/5] 配置系统全局命令...${NC}"
 chmod +x src/index.js
-sudo -E npm install -g . || npm install -g . || {
+sudo -E npm install -g . --cache /tmp/npm-cache-sudo || npm install -g . || {
     echo -e "${RED}❌ 全局命令注册失败！${NC}"
     exit 1
 }
