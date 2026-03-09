@@ -20,6 +20,7 @@ TMP_DIR=""
 PREFERRED_INSTALL_URL="https://openclaw.ai/install.sh"
 PREFERRED_PROJECT_GIT="https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git"
 PREFERRED_NPM_REGISTRY="https://registry.npmmirror.com"
+PREFERRED_GIT_INSTEAD_OF="https://ghfast.top/https://github.com/"
 
 echo -e "${CYAN}
 ──────────────────────────────────────────────────
@@ -174,7 +175,15 @@ run_official_installer() {
 
     chmod +x "$installer_file"
 
-    if npm_config_registry="$PREFERRED_NPM_REGISTRY" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
+    if \
+        GIT_CONFIG_COUNT=2 \
+        GIT_CONFIG_KEY_0=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+        GIT_CONFIG_VALUE_0=https://github.com/ \
+        GIT_CONFIG_KEY_1=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+        GIT_CONFIG_VALUE_1=git+https://github.com/ \
+        npm_config_registry="$PREFERRED_NPM_REGISTRY" \
+        OPENCLAW_NO_ONBOARD=1 \
+        bash "$installer_file" --no-onboard; then
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成${NC}"
         return 0
     fi

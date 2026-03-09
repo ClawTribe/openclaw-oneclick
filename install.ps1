@@ -13,6 +13,7 @@ $TempDir = $null
 $PreferredInstallUrl = 'https://openclaw.ai/install.ps1'
 $PreferredProjectGit = 'https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git'
 $PreferredNpmRegistry = 'https://registry.npmmirror.com'
+$PreferredGitInsteadOf = 'https://ghfast.top/https://github.com/'
 
 Write-Host @"
     ┌──────────────────────────────────────────────────┐
@@ -138,6 +139,11 @@ function Invoke-OfficialInstaller {
     }
 
     $env:npm_config_registry = $PreferredNpmRegistry
+    $env:GIT_CONFIG_COUNT = '2'
+    $env:GIT_CONFIG_KEY_0 = "url.$PreferredGitInsteadOf.insteadOf"
+    $env:GIT_CONFIG_VALUE_0 = 'https://github.com/'
+    $env:GIT_CONFIG_KEY_1 = "url.$PreferredGitInsteadOf.insteadOf"
+    $env:GIT_CONFIG_VALUE_1 = 'git+https://github.com/'
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
         Write-Host '   ✓ OpenClaw 核心安装完成' -ForegroundColor Green
@@ -146,6 +152,7 @@ function Invoke-OfficialInstaller {
 
     Write-Host '   ⚠ 国内优先链路失败，回退官方 npm 源重试...' -ForegroundColor Yellow
     $env:npm_config_registry = $OfficialNpmRegistry
+    Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:GIT_CONFIG_KEY_1, Env:GIT_CONFIG_VALUE_1 -ErrorAction SilentlyContinue
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
         Write-Host '   ✓ OpenClaw 核心安装完成（官方回退）' -ForegroundColor Green

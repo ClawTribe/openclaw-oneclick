@@ -31,6 +31,8 @@
 
 安装脚本会优先调用 OpenClaw 官方安装器完成核心安装；如果在中国大陆网络环境下遇到 npm 或 GitHub 访问问题，会自动尝试当前安装进程内的 fallback，不会主动改写你的全局 npm 配置。
 
+当前安装策略为中国大陆优先：默认先使用国内 npm 镜像与 GitHub 代理；如果安装过程中遇到 [`git+https://github.com/...`](README.md:31) 这类 Git 依赖，也会在当前进程里临时注入 GitHub 代理映射，再在必要时回退官方源。
+
 ### Windows (PowerShell 管理员)
 
 ```powershell
@@ -38,6 +40,8 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 ```
 
 Windows 脚本与 macOS / Linux 版本保持同一安装职责：先检查基础环境，再优先调用 OpenClaw 官方安装器，最后安装并注册 [`openclaw-setup`](package.json:6)。
+
+Windows 版本同样采用中国大陆优先策略：默认先使用国内 npm 镜像、GitHub 代理与临时 Git URL 映射，失败时再回退官方链路。
 
 ---
 
@@ -68,6 +72,7 @@ openclaw-setup
 | `command not found: node` | 安装 Node.js v22+ 并添加到 PATH           |
 | `Permission denied`       | macOS/Linux 加 `sudo`，Windows 用管理员 |
 | 缺少 `curl` / `git` / `sudo` | 安装脚本会先尝试自动补齐；若系统过于精简，会输出可直接复制的准备命令 |
+| npm 已走镜像但仍安装失败 | 可能是 `openclaw` 依赖里的 GitHub git 依赖超时；当前脚本会自动为当前安装进程注入 GitHub 代理映射 |
 | 网关启动失败                | 运行 `openclaw doctor` 诊断             |
 | 配置不生效                  | 运行 `openclaw gateway restart`         |
 
