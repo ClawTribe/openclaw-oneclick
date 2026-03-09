@@ -78,4 +78,4 @@ openclaw-jun
 
 ## 许可
 
-MIT License | Developed by ClawTribe
+MIT License | Original by Jun | Modified & Optimized by ClawTribe
