@@ -32,22 +32,71 @@ else
 fi
 
 # 1. 核心依赖安装 (Node.js)
-if ! command -v node &> /dev/null; then
-    echo -e "\n${YELLOW}[2/5] 正在安装 Node.js...${NC}"
-    if command -v brew &> /dev/null; then
-        brew install node
-    elif command -v apt-get &> /dev/null; then
-        sudo apt-get update && sudo apt-get install -y nodejs npm git
-    elif command -v yum &> /dev/null; then
-        sudo yum install -y nodejs npm git
+echo -e "\n${YELLOW}[2/5] Node.js 环境检查...${NC}"
+
+# 检查 Node.js 版本是否满足要求 (>= 20)
+if command -v node &> /dev/null; then
+    NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+    if [ "$NODE_VERSION" -ge 20 ]; then
+        echo -e "   ${GREEN}✓ Node.js v${NODE_VERSION} 已安装${NC}"
     else
-        echo -e "${RED}请手动安装 Node.js v22+ 和 Git${NC}"
-        exit 1
+        echo -e "   ${YELLOW}⚠ Node.js v${NODE_VERSION} 版本过低，需要 Node.js 20+${NC}"
+        NODEJS_INSTALLED=1
     fi
 else
-    echo -e "\n${YELLOW}[2/5] Node.js 环境检查...${NC}"
-    echo -e "   ${GREEN}✓ Node.js 已安装${NC}"
+    echo -e "   ${YELLOW}⚠ Node.js 未安装${NC}"
+    NODEJS_INSTALLED=1
 fi
+
+# 如果 Node.js 未安装或版本过低，尝试安装
+if [ -n "$NODEJS_INSTALLED" ]; then
+    echo -e "   ${YELLOW}正在安装/升级 Node.js 22...${NC}"
+    
+    # 检测操作系统
+    if command -v brew &> /dev/null; then
+        # macOS 使用 Homebrew
+        if ! command -v nvm &> /dev/null; then
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            source ~/.nvm/nvm.sh
+        fi
+        nvm install 22
+        nvm use 22
+    elif command -v apt-get &> /dev/null; then
+        # Ubuntu/Debian
+        if ! command -v nvm &> /dev/null; then
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            source ~/.nvm/nvm.sh
+        fi
+        nvm install 22
+        nvm use 22
+    elif command -v yum &> /dev/null; then
+        # CentOS/RHEL
+        if ! command -v nvm &> /dev/null; then
+            curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
+            source ~/.nvm/nvm.sh
+        fi
+        nvm install 22
+        nvm use 22
+    else
+        echo -e "${RED}❌ 无法自动安装 Node.js，请手动安装 Node.js 22+${NC}"
+        echo -e "${YELLOW}推荐使用 NVM: curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash${NC}"
+        exit 1
+    fi
+fi
+
+# 验证安装
+if ! command -v node &> /dev/null; then
+    echo -e "${RED}❌ Node.js 安装失败${NC}"
+    exit 1
+fi
+
+NODE_VERSION=$(node -v | cut -d'v' -f2 | cut -d'.' -f1)
+if [ "$NODE_VERSION" -lt 20 ]; then
+    echo -e "${RED}❌ Node.js 版本过低 (v${NODE_VERSION})，需要 Node.js 20+${NC}"
+    exit 1
+fi
+
+echo -e "   ${GREEN}✓ Node.js v${NODE_VERSION} 验证通过${NC}"
 
 # 检查 Git
 if ! command -v git &> /dev/null; then
@@ -64,8 +113,9 @@ if ! command -v openclaw &> /dev/null; then
     
     # 核心修复：配置 Root 用户的 git，强行将 ssh 转换为 https，避免缺少 SSH Key 导致 NPM 底层 C++ 依赖拉取失败！
     # （因为只修改 Root 账户的配置，绝对不会污染普通用户的日常 git push 环境）
-    sudo git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
-    sudo git config --global url."https://github.com/".insteadOf "git@github.com:"
+    # 使用 sudo -E 保留环境变量，确保 nvm 配置生效
+    sudo -E git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+    sudo -E git config --global url."https://github.com/".insteadOf "git@github.com:"
     
     # 优先尝试 sudo 安装（系统级 Node），如果失败则尝试普通安装（NVM/Termux 等环境）
     if sudo -E npm install -g openclaw --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo; then
@@ -111,12 +161,22 @@ npm install --production --registry="$npm_config_registry" || {
 echo -e "\n${YELLOW}[5/5] 配置系统全局命令...${NC}"
 chmod +x src/index.js
 sudo rm -rf /usr/local/lib/node_modules/openclaw-oneclick 2>/dev/null
+# 在 sudo 环境下使用 nvm 的 node
+if [ -n "$NVM_DIR" ]; then
+    export PATH="$NVM_DIR/versions/node/v22*/bin:$PATH"
+fi
+# 确保使用 nvm 的 node 进行全局安装
+if [ -n "$NVM_DIR" ] && command -v nvm &> /dev/null; then
+    source "$NVM_DIR/nvm.sh"
+    nvm use 22
+fi
 if sudo -E npm install -g . --registry="$npm_config_registry" --cache /tmp/npm-cache-sudo; then
     echo -e "   ${GREEN}✓ 全局命令链接成功${NC}"
 elif npm install -g . --registry="$npm_config_registry"; then
     echo -e "   ${GREEN}✓ 全局命令链接成功${NC}"
 else
     echo -e "${RED}❌ 全局命令注册失败！${NC}"
+    echo -e "${YELLOW}提示: 如果使用 NVM，请确保在 sudo 环境下也能访问 nvm${NC}"
     exit 1
 fi
 
