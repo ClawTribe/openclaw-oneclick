@@ -107,106 +107,31 @@ module.exports = [
                         allowEmpty: true
                     }
                 ]
+            },
+            {
+                id: "messages",
+                label: { zh: "全局群聊消息规则", en: "Message Rules" },
+                items: [
+                    {
+                        key: "messages.groupChat.requireMention",
+                        label: { zh: "群聊@", en: "Mention" },
+                        desc: { zh: "群聊中必须@机器人才响应", en: "Require @ in groups" },
+                        type: "boolean"
+                    },
+                    {
+                        key: "messages.groupChat.mentionPatterns",
+                        label: { zh: "@模式", en: "Patterns" },
+                        desc: { zh: "触发机器人的关键词，如 @claw", en: "Keywords to trigger, e.g. @claw" },
+                        type: "string",
+                        isArray: true
+                    }
+                ]
             }
         ]
     },
 
     // ==================== 会话管理 ====================
-    {
-        id: "domesticProviders",
-        label: { zh: "国产模型提供商", en: "Domestic Providers" },
-        items: [
-            {
-                key: "models.providers.minimax",
-                label: { zh: "MiniMax / 海螺", en: "MiniMax" },
-                desc: { zh: "配置 MiniMax 官方兼容 OpenAI 接口的 provider JSON", en: "Configure MiniMax provider JSON" },
-                type: "json",
-                template: {
-                    baseUrl: "https://api.minimaxi.com/v1",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [
-                        { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
-                        { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed" }
-                    ]
-                }
-            },
-            {
-                key: "models.providers.glm",
-                label: { zh: "智谱 GLM", en: "GLM" },
-                desc: { zh: "配置智谱官方兼容 OpenAI 接口的 provider JSON", en: "Configure GLM provider JSON" },
-                type: "json",
-                template: {
-                    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [
-                        { id: "GLM-5", name: "GLM 5" },
-                        { id: "GLM-4.7", name: "GLM 4.7" }
-                    ]
-                }
-            },
-            {
-                key: "models.providers.moonshot",
-                label: { zh: "Kimi / Moonshot", en: "Kimi" },
-                desc: { zh: "配置 Kimi 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Kimi provider JSON" },
-                type: "json",
-                template: {
-                    baseUrl: "https://api.moonshot.cn/v1",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [
-                        { id: "kimi-k2.5", name: "Kimi k2.5" },
-                        { id: "kimi-k2-0905-preview", name: "Kimi K2" }
-                    ]
-                }
-            },
-            {
-                key: "models.providers.volcengine",
-                label: { zh: "Doubao / 火山方舟", en: "Doubao" },
-                desc: { zh: "配置 Doubao 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Doubao provider JSON" },
-                type: "json",
-                template: {
-                    baseUrl: "https://ark.cn-beijing.volces.com/api/coding/v3",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [
-                        { id: "doubao-seed-2-0-pro-260215", name: "DoubaoSeed 2.0 Pro" },
-                        { id: "doubao-seed-2-0-lite-260215", name: "DoubaoSeed 2.0 Lite" }
-                    ]
-                }
-            },
-            {
-                key: "models.providers.qwen",
-                label: { zh: "通义千问 Qwen", en: "Qwen" },
-                desc: { zh: "配置 Qwen 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Qwen provider JSON" },
-                type: "json",
-                template: {
-                    baseUrl: "https://dashscope.aliyun.com/compatible-mode/v1",
-                    apiKey: "",
-                    api: "openai-completions",
-                    models: [
-                        { id: "qwen3-max", name: "Qwen3 Max" },
-                        { id: "qwen3.5-flash", name: "Qwen3.5 Flash" }
-                    ]
-                }
-            },
-            {
-                key: "models.providers.custom",
-                label: { zh: "自定义 (兼容 OpenAI 代理)", en: "Custom OpenAI-compatible" },
-                desc: { zh: "配置您自己的中转代理 (如 OneAPI) 的 Base URL 和 API Key", en: "Configure custom OpenAI proxy" },
-                type: "json",
-                template: {
-                    baseUrl: "https://api.your-proxy.com/v1",
-                    apiKey: "sk-...",
-                    api: "openai-completions",
-                    models: [
-                        { id: "您的自定义模型名称", name: "Custom Model" }
-                    ]
-                }
-            }
-        ]
-    },
+    // ==================== 高级进阶配置项（默认被界面隐藏） ====================
     {
         id: "sessions",
         label: { zh: "会话管理", en: "Sessions" },
@@ -337,26 +262,7 @@ module.exports = [
         ]
     },
 
-    // ==================== 消息 ====================
-    {
-        id: "messages",
-        label: { zh: "消息规则", en: "Messages" },
-        items: [
-            {
-                key: "messages.groupChat.requireMention",
-                label: { zh: "群聊@", en: "Mention" },
-                desc: { zh: "群聊中必须@机器人才响应", en: "Require @ in groups" },
-                type: "boolean"
-            },
-            {
-                key: "messages.groupChat.mentionPatterns",
-                label: { zh: "@模式", en: "Patterns" },
-                desc: { zh: "触发机器人的关键词，如 @claw", en: "Keywords to trigger, e.g. @claw" },
-                type: "string",
-                isArray: true
-            }
-        ]
-    },
+
 
     // ==================== 日志 ====================
     {

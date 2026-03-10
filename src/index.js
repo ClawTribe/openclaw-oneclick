@@ -578,21 +578,7 @@ async function installDaemonWizard() {
     console.log(ui.msg('gray', '      它将为您在后台运行 OpenClaw，并使其随电脑开机自动启动。\n'));
 
     try {
-        const p1 = new Toggle({
-            message: '是否现在为您安装并配置后台守护进程？',
-            enabled: '🚀 是, 立即安装',
-            disabled: '✖️ 否, 暂不配置',
-            initial: true
-        });
-        const doInstall = await p1.run();
-        
-        if (!doInstall) {
-            console.log(ui.msg('yellow', '已取消安装。'));
-            await sleep(1000);
-            return;
-        }
-
-        console.log(ui.info('\n正在检查系统环境与 PM2 进程管理器...'));
+        console.log(ui.info('\n正在自动检查系统环境与 PM2 进程管理器...'));
         try {
             execSync('pm2 -v', { stdio: 'ignore' });
         } catch (e) {
@@ -727,7 +713,7 @@ async function main() {
     await checkUpdate();
     ui.clearPath();
 
-    let showAdvanced = false;
+    // 废弃 showAdvanced 变量，完全隐藏极客菜单
 
     while (true) {
         const lang = engine.getLang();
@@ -735,8 +721,8 @@ async function main() {
 
         console.log(ui.msg('gray', '  选择要执行的操作\n'));
 
-        // 小白看不懂的高级配置池
-        const advancedCatIds = ['sessions', 'browser', 'cron', 'gateway', 'modelAdvanced', 'security', 'msgRule', 'logging'];
+        // 小白看不懂的高级配置池，全屏蔽
+        const advancedCatIds = ['sessions', 'browser', 'cron', 'gateway', 'models', 'security', 'messages', 'logging', 'msgRule', 'domesticProviders'];
 
         const choices = [];
 
@@ -746,7 +732,7 @@ async function main() {
 
         // 2. 基础核心选项
         SCHEMA.forEach((cat, i) => {
-            if (!showAdvanced && advancedCatIds.includes(cat.id)) return;
+            if (advancedCatIds.includes(cat.id)) return;
             const style = ui.categoryStyle(cat.id);
             choices.push({
                 name: String(i),
@@ -760,14 +746,6 @@ async function main() {
         // 3. 辅助功能区
         choices.push({ name: 'daemon', message: `   🚀 守护服务与开机自启` });
         choices.push({ name: 'restart', message: `   🔄 重启网关使配置生效` });
-        
-        // 高阶配置切换开关
-        if (!showAdvanced) {
-            choices.push({ name: 'toggle_advanced', message: `   🛠️  显示高级系统配置 (开发者/高阶玩家)` });
-        } else {
-            choices.push({ name: 'toggle_advanced', message: `   🙈 隐藏高级系统配置` });
-        }
-        
         choices.push({ name: 'lang', message: `   🌐 ${ui.t('langSwitch')}` });
         choices.push({ name: 'exit', message: `   🚪 退出向导` });
 
@@ -798,17 +776,15 @@ async function main() {
             continue;
         }
 
-        if (choice === 'toggle_advanced') {
-            showAdvanced = !showAdvanced;
-            continue;
-        }
-
         if (choice === 'daemon') {
             await installDaemonWizard();
             continue;
         }
 
         if (choice === 'restart') {
+            const p = new Toggle({ message: '⚠️ 此操作将重启当前运行的网关服务以应用配置。确认继续？', enabled: '✅ 确认重启', disabled: '🔙 返回', initial: true });
+            if (!await p.run()) continue;
+
             console.log(ui.info(ui.t('restarting') || '重启中...'));
             try {
                 execSync('openclaw gateway restart', { stdio: 'inherit' });
