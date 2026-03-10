@@ -97,14 +97,16 @@ module.exports = [
                     {
                         key: "channels.feishu.encryptKey",
                         label: { zh: "Encrypt Key (可选)", en: "Encrypt Key" },
-                        desc: { zh: "事件订阅中的 Encrypt Key，未开启加密则留空", en: "Event subscription Encrypt Key" },
-                        type: "string"
+                        desc: { zh: "事件订阅中的 Encrypt Key，未开启加密则直接回车跳过", en: "Event subscription Encrypt Key" },
+                        type: "string",
+                        allowEmpty: true
                     },
                     {
                         key: "channels.feishu.verificationToken",
                         label: { zh: "Verification Token (可选)", en: "Verification Token" },
-                        desc: { zh: "事件订阅中的 Verification Token", en: "Event subscription Verification Token" },
-                        type: "string"
+                        desc: { zh: "事件订阅中的 Verification Token，不需要则直接回车跳过", en: "Event subscription Verification Token" },
+                        type: "string",
+                        allowEmpty: true
                     }
                 ]
             }
