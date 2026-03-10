@@ -126,9 +126,26 @@ function Invoke-OfficialInstaller {
 
     Write-Host "`n[3/6] 安装 OpenClaw 核心（国内优先模式）..." -ForegroundColor Yellow
 
-    # 覆盖安装：先卸载现有版本
+    # 覆盖安装：先卸载现有版本并备份配置
     Write-Host '   正在卸载现有 OpenClaw 版本...' -ForegroundColor Cyan
     npm uninstall -g openclaw 2>$null | Out-Null
+    
+    # 备份配置文件（解决版本兼容性问题）
+    Write-Host '   正在备份旧配置文件...' -ForegroundColor Cyan
+    $configFile = Join-Path $HOME '.openclaw\openclaw.json'
+    if (Test-Path $configFile) {
+        $timestamp = Get-Date -Format 'MMddHHmm'
+        $backupFile = Join-Path $HOME "openclaw.$timestamp.bak"
+        Copy-Item $configFile $backupFile
+        Write-Host "   ✓ 已备份配置至 $backupFile" -ForegroundColor Green
+    }
+    
+    # 清理配置目录
+    $configDir = Join-Path $HOME '.openclaw'
+    if (Test-Path $configDir) {
+        Remove-Item -Recurse -Force $configDir
+        Write-Host '   ✓ 已清理 ~/.openclaw 配置目录' -ForegroundColor Green
+    }
 
     $installerFile = Join-Path $script:TempDir 'openclaw-install.ps1'
     try {
