@@ -27,6 +27,10 @@ module.exports = [
                     "glm/glm-4.6",
                     "glm/glm-4.5-Air",
                     "glm/glm-4-Long",
+                    "qwen/qwen3.5-plus",
+                    "qwen/qwen3-max-2026-01-23",
+                    "qwen/qwen3-coder-next",
+                    "qwen/qwen3-coder-plus",
                     "qwen/qwen3-max",
                     "minimax/MiniMax-M2.5",
                     "volcengine/doubao-seed-2-0-pro-260215"
@@ -41,6 +45,7 @@ module.exports = [
                 needsApiKey: true,
                 options: [
                     "deepseek/deepseek-chat",
+                    "moonshot/kimi-k2.5",
                     "moonshot/kimi-k2-0905-preview",
                     "glm/glm-4.7-flash|免费",
                     "glm/glm-4.5-flash|免费",
@@ -49,7 +54,12 @@ module.exports = [
                     "glm/glm-4.7-FlashX",
                     "glm/glm-4.6",
                     "glm/glm-4.5-Air",
+                    "qwen/qwen3.5-plus",
+                    "qwen/qwen3-max-2026-01-23",
+                    "qwen/qwen3-coder-next",
+                    "qwen/qwen3-coder-plus",
                     "qwen/qwen3.5-flash",
+                    "minimax/MiniMax-M2.5",
                     "minimax/MiniMax-M2.5-highspeed",
                     "volcengine/doubao-seed-2-0-lite-260215"
                 ]
