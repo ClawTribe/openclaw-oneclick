@@ -477,6 +477,63 @@ async function subMenu(cat) {
     }
 }
 
+// 中文化守护进程(Daemon)向导
+async function installDaemonWizard() {
+    console.clear();
+    console.log(ui.getHeader(pkg.version));
+    console.log(ui.msg('cyan', '🛠️  进入【后台服务与开机自启 (Daemon)】向导\n'));
+    console.log(ui.msg('gray', '说明: 此向导完全替代官方英文版的 openclaw onboard --install-daemon。'));
+    console.log(ui.msg('gray', '      它将为您在后台运行 OpenClaw，并使其随电脑开机自动启动。\n'));
+
+    try {
+        const p1 = new Toggle({
+            message: '是否现在为您安装并配置后台守护进程？',
+            enabled: '🚀 是, 立即安装',
+            disabled: '✖️ 否, 暂不配置',
+            initial: true
+        });
+        const doInstall = await p1.run();
+        
+        if (!doInstall) {
+            console.log(ui.msg('yellow', '已取消安装。'));
+            await sleep(1000);
+            return;
+        }
+
+        console.log(ui.info('\n正在检查系统环境与 PM2 进程管理器...'));
+        try {
+            execSync('pm2 -v', { stdio: 'ignore' });
+        } catch (e) {
+            console.log(ui.info('未检测到 pm2，正在自动安装跨平台进程守护工具...'));
+            execSync('npm install -g pm2', { stdio: 'inherit' });
+        }
+
+        console.log(ui.info('\n正在将 OpenClaw 注入到系统后台服务...'));
+        
+        // 使用 pm2 启动并管理 openclaw gateway
+        const startCmd = process.platform === 'win32' ? 'pm2 start openclaw --name "openclaw" -- gateway start' : 'pm2 start "$(which openclaw)" --name "openclaw" -- gateway start';
+        
+        execSync('pm2 stop openclaw 2>/null || true', { stdio: 'ignore' });
+        execSync('pm2 delete openclaw 2>/null || true', { stdio: 'ignore' });
+        execSync(startCmd, { stdio: 'inherit' });
+        execSync('pm2 save', { stdio: 'inherit' });
+        
+        // 显示自启命令建议
+        console.log(ui.success('🎉 开机自启服务安装并启动成功！'));
+        console.log(ui.msg('gray', '如需彻底固化开机启动，请在您的系统终端执行以下命令：'));
+        if (process.platform === 'win32') {
+            console.log(ui.msg('yellow', '   npm install -g pm2-windows-startup\n   pm2-startup install\n   pm2 save'));
+        } else {
+            console.log(ui.msg('yellow', '   pm2 startup  (然后复制终端给出的提示命令并运行)'));
+        }
+        
+    } catch (e) {
+        // 用户按 ctrl-c
+    }
+    
+    await ask('\n按回车键返回主菜单...');
+}
+
 // 主菜单
 async function main() {
     await checkUpdate();
@@ -498,6 +555,7 @@ async function main() {
         });
 
         choices.push({ name: '_sep', message: '', role: 'separator' });
+        choices.push({ name: 'daemon', message: `   🚀 守护服务与开机自启` });
         choices.push({ name: 'lang', message: `   🌐 ${ui.t('langSwitch')}` });
         choices.push({ name: 'restart', message: `   🔄 ${ui.t('restart')}` });
         choices.push({ name: 'exit', message: `   🚪 ${ui.t('exit')}` });
@@ -521,6 +579,11 @@ async function main() {
 
         if (choice === 'lang') {
             engine.setLang(lang === 'zh' ? 'en' : 'zh');
+            continue;
+        }
+
+        if (choice === 'daemon') {
+            await installDaemonWizard();
             continue;
         }
 
