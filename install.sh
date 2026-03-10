@@ -11,6 +11,8 @@ NC='\033[0m'
 
 VERSION="3.1.0"
 INSTALL_DIR="$HOME/OpenClaw"
+DEFAULT_OPENCLAW_VERSION="2026.2.26"
+OPENCLAW_VERSION="${OPENCLAW_VERSION:-$DEFAULT_OPENCLAW_VERSION}"
 OFFICIAL_INSTALL_URL="https://openclaw.ai/install.sh"
 OFFICIAL_PROJECT_GIT="https://github.com/ClawTribe/openclaw-oneclick.git"
 FALLBACK_PROJECT_GIT="https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git"
@@ -107,6 +109,7 @@ require_bootstrap_tools() {
     fi
 
     echo -e "   ${GREEN}✓ 当前默认采用中国大陆优先模式${NC}"
+    echo -e "   ${GREEN}  OpenClaw 默认版本: ${OPENCLAW_VERSION}${NC}"
     echo -e "   ${GREEN}  npm 默认使用 ${PREFERRED_NPM_REGISTRY}${NC}"
     echo -e "   ${GREEN}  GitHub 默认使用代理地址${NC}"
 }
@@ -160,6 +163,10 @@ run_official_installer() {
 
     echo -e "\n${YELLOW}[3/6] 安装 OpenClaw 核心（国内优先模式）...${NC}"
 
+    # 覆盖安装：先卸载现有版本
+    echo -e "   ${CYAN}正在卸载现有 OpenClaw 版本...${NC}"
+    npm uninstall -g openclaw 2>/dev/null || true
+
     local installer_file="$TMP_DIR/openclaw-install.sh"
     if curl -fsSL --proto '=https' --tlsv1.2 "$PREFERRED_INSTALL_URL" -o "$installer_file"; then
         echo -e "   ${GREEN}✓ 官方安装器下载成功${NC}"
@@ -182,6 +189,7 @@ run_official_installer() {
         GIT_CONFIG_KEY_1=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
         GIT_CONFIG_VALUE_1=git+https://github.com/ \
         npm_config_registry="$PREFERRED_NPM_REGISTRY" \
+        OPENCLAW_VERSION="$OPENCLAW_VERSION" \
         OPENCLAW_NO_ONBOARD=1 \
         bash "$installer_file" --no-onboard; then
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成${NC}"
@@ -190,7 +198,7 @@ run_official_installer() {
 
     echo -e "   ${YELLOW}⚠ 国内优先链路失败，回退官方 npm 源重试...${NC}"
 
-    if OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
+    if OPENCLAW_VERSION="$OPENCLAW_VERSION" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成（官方回退）${NC}"
         return 0
     fi

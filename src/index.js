@@ -97,6 +97,33 @@ try {
     process.exit(1);
 }
 
+async function selectOrCustomInput(item, lang, current) {
+    const choices = [
+        ...(item.options || []),
+        '✍️ 手动输入'
+    ];
+    const picker = new Select({
+        message: item.label[lang] + ' (按上下键选择，回车确认):',
+        choices
+    });
+    const choice = await picker.run();
+    if (choice === '自定义' || choice === '✍️ 手动输入') {
+        const inputPrompt = new Input({
+            message: `⌨️ 请手动输入 [${item.label[lang]}] 的内容:`,
+            initial: Array.isArray(current) ? current.join(', ') : (current || '')
+        });
+        const raw = await inputPrompt.run();
+        if (item.isArray) {
+            return raw
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean);
+        }
+        return raw;
+    }
+    return choice;
+}
+
 // 头部与状态概览
 function showHeader() {
     console.clear();
@@ -157,6 +184,26 @@ async function testApiKey(provider, apiKey) {
                 }),
                 signal: controller.signal
             });
+        } else if (['minimax', 'glm', 'moonshot', 'volcengine', 'qwen'].includes(normProvider)) {
+            const providerConfigMap = {
+                minimax: 'models.providers.minimax',
+                glm: 'models.providers.glm',
+                moonshot: 'models.providers.moonshot',
+                volcengine: 'models.providers.volcengine',
+                qwen: 'models.providers.qwen'
+            };
+            const currentConfig = engine.read();
+            const providerConfig = engine.get(currentConfig, providerConfigMap[normProvider]) || {};
+            const baseUrl = providerConfig.baseUrl;
+            if (!baseUrl) {
+                clearTimeout(timeout);
+                return { ok: null, msg: `请先配置 ${provider} 的 baseUrl，再进行连通性验证` };
+            }
+            const modelsUrl = `${String(baseUrl).replace(/\/$/, '')}/models`;
+            res = await fetch(modelsUrl, {
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+                signal: controller.signal
+            });
         } else {
             clearTimeout(timeout);
             return { ok: null, msg: `暂不支持 ${provider} 的自动验证，跳过测试` };
@@ -202,17 +249,17 @@ async function editConfig(config, item) {
             });
             newVal = await p.run();
         } else if (item.type === 'enum') {
-            const p = new Select({
-                message: item.label[lang] + ' (按上下键选择，回车确认):',
-                choices: item.options
+            newVal = await selectOrCustomInput(item, lang, current);
+        } else if (item.type === 'json') {
+            const initialJson = current
+                ? JSON.stringify(current, null, 2)
+                : JSON.stringify(item.template || {}, null, 2);
+            const p = new Input({
+                message: `⌨️ 请以 JSON 形式输入 [${item.label[lang]}] 的内容:`,
+                initial: initialJson
             });
-            const choice = await p.run();
-            if (choice === '自定义') {
-                const inp = new Input({ message: '⌨️ 请在此输入您的自定义内容:', initial: current || '' });
-                newVal = await inp.run();
-            } else {
-                newVal = choice;
-            }
+            const raw = await p.run();
+            newVal = raw ? JSON.parse(raw) : {};
         } else {
             const p = new Input({
                 message: `⌨️ 请在此输入 [${item.label[lang]}] 的内容:`,
@@ -258,12 +305,25 @@ async function editConfig(config, item) {
                             'anthropic': 'ANTHROPIC_API_KEY',
                             'google': 'GEMINI_API_KEY',
                             'google-gemini-cli': 'GEMINI_API_KEY',
-                            'deepseek': 'DEEPSEEK_API_KEY'
+                            'deepseek': 'DEEPSEEK_API_KEY',
+                            'minimax': 'MINIMAX_API_KEY',
+                            'glm': 'GLM_API_KEY',
+                            'moonshot': 'MOONSHOT_API_KEY',
+                            'volcengine': 'ARK_API_KEY',
+                            'qwen': 'DASHSCOPE_API_KEY'
+                        };
+                        const providerDisplayNameMap = {
+                            minimax: 'MiniMax',
+                            glm: 'GLM',
+                            moonshot: 'Kimi',
+                            volcengine: 'Doubao',
+                            qwen: 'Qwen'
                         };
                         const normProvider = provider.replace('-cli', '');
                         const envVar = envMap[normProvider] || `${provider.toUpperCase()}_API_KEY`;
+                        const providerDisplayName = providerDisplayNameMap[normProvider] || provider.toUpperCase();
                         
-                        console.log(ui.msg('gray', `\n注: OpenClaw 依靠底层系统的环境变量 ${envVar} 运行（而非写死在项目配置中）。`));
+                        console.log(ui.msg('gray', `\n注: ${providerDisplayName} 依靠底层系统的环境变量 ${envVar} 运行（而非写死在项目配置中）。`));
                         
                         // 第 3 步：一键注入系统变量
                         try {

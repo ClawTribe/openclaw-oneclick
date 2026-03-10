@@ -4,6 +4,8 @@ $ErrorActionPreference = 'Stop'
 
 $Version = '3.1.0'
 $InstallDir = Join-Path $HOME 'OpenClaw'
+$DefaultOpenClawVersion = '2026.2.26'
+$OpenClawVersion = if ($env:OPENCLAW_VERSION) { $env:OPENCLAW_VERSION } else { $DefaultOpenClawVersion }
 $OfficialInstallUrl = 'https://openclaw.ai/install.ps1'
 $OfficialProjectGit = 'https://github.com/ClawTribe/openclaw-oneclick.git'
 $FallbackProjectGit = 'https://ghfast.top/https://github.com/ClawTribe/openclaw-oneclick.git'
@@ -86,6 +88,7 @@ function Require-BootstrapTools {
     }
 
     Write-Host "   ✓ 当前默认采用中国大陆优先模式" -ForegroundColor Green
+    Write-Host "   OpenClaw 默认版本: $OpenClawVersion" -ForegroundColor Green
     Write-Host "   npm 默认使用 $PreferredNpmRegistry" -ForegroundColor Green
     Write-Host '   GitHub 默认使用代理地址' -ForegroundColor Green
 }
@@ -123,6 +126,10 @@ function Invoke-OfficialInstaller {
 
     Write-Host "`n[3/6] 安装 OpenClaw 核心（国内优先模式）..." -ForegroundColor Yellow
 
+    # 覆盖安装：先卸载现有版本
+    Write-Host '   正在卸载现有 OpenClaw 版本...' -ForegroundColor Cyan
+    npm uninstall -g openclaw 2>$null | Out-Null
+
     $installerFile = Join-Path $script:TempDir 'openclaw-install.ps1'
     try {
         Invoke-WebRequest -UseBasicParsing -Uri $PreferredInstallUrl -OutFile $installerFile
@@ -139,6 +146,7 @@ function Invoke-OfficialInstaller {
     }
 
     $env:npm_config_registry = $PreferredNpmRegistry
+    $env:OPENCLAW_VERSION = $OpenClawVersion
     $env:GIT_CONFIG_COUNT = '2'
     $env:GIT_CONFIG_KEY_0 = "url.$PreferredGitInsteadOf.insteadOf"
     $env:GIT_CONFIG_VALUE_0 = 'https://github.com/'
@@ -153,6 +161,7 @@ function Invoke-OfficialInstaller {
     Write-Host '   ⚠ 国内优先链路失败，回退官方 npm 源重试...' -ForegroundColor Yellow
     $env:npm_config_registry = $OfficialNpmRegistry
     Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:GIT_CONFIG_KEY_1, Env:GIT_CONFIG_VALUE_1 -ErrorAction SilentlyContinue
+    $env:OPENCLAW_VERSION = $OpenClawVersion
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
         Write-Host '   ✓ OpenClaw 核心安装完成（官方回退）' -ForegroundColor Green

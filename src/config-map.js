@@ -26,6 +26,11 @@ module.exports = [
                     "google/gemini-1.5-pro",
                     "deepseek/deepseek-reasoner",
                     "deepseek/deepseek-chat",
+                    "minimax/MiniMax-M2.5",
+                    "glm/GLM-5",
+                    "moonshot/kimi-k2.5",
+                    "volcengine/doubao-seed-2-0-pro-260215",
+                    "qwen/qwen3-max",
                     "ollama/llama3.3",
                     "ollama/qwen2.5",
                     "自定义"
@@ -45,6 +50,11 @@ module.exports = [
                     "openai/gpt-4-turbo",
                     "anthropic/claude-3-5-sonnet",
                     "deepseek/deepseek-chat",
+                    "minimax/MiniMax-M2.5-highspeed",
+                    "glm/GLM-4.7-FlashX",
+                    "moonshot/kimi-k2-0905-preview",
+                    "volcengine/doubao-seed-2-0-lite-260215",
+                    "qwen/qwen3.5-flash",
                     "ollama/llama3",
                     "自定义"
                 ]
@@ -231,6 +241,87 @@ module.exports = [
 
     // ==================== 会话管理 ====================
     {
+        id: "domesticProviders",
+        label: { zh: "国产模型提供商", en: "Domestic Providers" },
+        items: [
+            {
+                key: "models.providers.minimax",
+                label: { zh: "MiniMax / 海螺", en: "MiniMax" },
+                desc: { zh: "配置 MiniMax 官方兼容 OpenAI 接口的 provider JSON", en: "Configure MiniMax provider JSON" },
+                type: "json",
+                template: {
+                    baseUrl: "https://api.minimaxi.com/v1",
+                    apiKey: "",
+                    api: "openai-completions",
+                    models: [
+                        { id: "MiniMax-M2.5", name: "MiniMax M2.5" },
+                        { id: "MiniMax-M2.5-highspeed", name: "MiniMax M2.5 Highspeed" }
+                    ]
+                }
+            },
+            {
+                key: "models.providers.glm",
+                label: { zh: "智谱 GLM", en: "GLM" },
+                desc: { zh: "配置智谱官方兼容 OpenAI 接口的 provider JSON", en: "Configure GLM provider JSON" },
+                type: "json",
+                template: {
+                    baseUrl: "https://open.bigmodel.cn/api/paas/v4",
+                    apiKey: "",
+                    api: "openai-completions",
+                    models: [
+                        { id: "GLM-5", name: "GLM 5" },
+                        { id: "GLM-4.7", name: "GLM 4.7" }
+                    ]
+                }
+            },
+            {
+                key: "models.providers.moonshot",
+                label: { zh: "Kimi / Moonshot", en: "Kimi" },
+                desc: { zh: "配置 Kimi 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Kimi provider JSON" },
+                type: "json",
+                template: {
+                    baseUrl: "https://api.moonshot.cn/v1",
+                    apiKey: "",
+                    api: "openai-completions",
+                    models: [
+                        { id: "kimi-k2.5", name: "Kimi k2.5" },
+                        { id: "kimi-k2-0905-preview", name: "Kimi K2" }
+                    ]
+                }
+            },
+            {
+                key: "models.providers.volcengine",
+                label: { zh: "Doubao / 火山方舟", en: "Doubao" },
+                desc: { zh: "配置 Doubao 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Doubao provider JSON" },
+                type: "json",
+                template: {
+                    baseUrl: "https://ark.cn-beijing.volces.com/api/coding/v3",
+                    apiKey: "",
+                    api: "openai-completions",
+                    models: [
+                        { id: "doubao-seed-2-0-pro-260215", name: "DoubaoSeed 2.0 Pro" },
+                        { id: "doubao-seed-2-0-lite-260215", name: "DoubaoSeed 2.0 Lite" }
+                    ]
+                }
+            },
+            {
+                key: "models.providers.qwen",
+                label: { zh: "通义千问 Qwen", en: "Qwen" },
+                desc: { zh: "配置 Qwen 官方兼容 OpenAI 接口的 provider JSON", en: "Configure Qwen provider JSON" },
+                type: "json",
+                template: {
+                    baseUrl: "https://dashscope.aliyun.com/compatible-mode/v1",
+                    apiKey: "",
+                    api: "openai-completions",
+                    models: [
+                        { id: "qwen3-max", name: "Qwen3 Max" },
+                        { id: "qwen3.5-flash", name: "Qwen3.5 Flash" }
+                    ]
+                }
+            }
+        ]
+    },
+    {
         id: "sessions",
         label: { zh: "会话管理", en: "Sessions" },
         items: [
@@ -336,7 +427,7 @@ module.exports = [
         label: { zh: "模型深度配置", en: "AI Model Advanced" },
         items: [
             { key: "agents.defaults.thinking", label: { zh: "全局思考模式", en: "Thinking Mode" }, type: "enum", options: ["off", "low", "medium", "high"] },
-            { key: "agents.defaults.model.primary", label: { zh: "主模型", en: "Primary" }, type: "enum", needsApiKey: true, options: ["google-gemini-cli/gemini-2.0-flash-thinking-exp-01-21", "google-gemini-cli/gemini-2.0-pro-exp-02-05", "google-gemini-cli/gemini-2.0-flash", "anthropic/claude-3-5-sonnet-latest", "openai/gpt-4o"] }
+            { key: "agents.defaults.model.primary", label: { zh: "主模型", en: "Primary" }, type: "enum", needsApiKey: true, options: ["google-gemini-cli/gemini-2.0-flash-thinking-exp-01-21", "google-gemini-cli/gemini-2.0-pro-exp-02-05", "google-gemini-cli/gemini-2.0-flash", "anthropic/claude-3-5-sonnet-latest", "openai/gpt-4o", "minimax/MiniMax-M2.5", "glm/GLM-5", "moonshot/kimi-k2.5", "volcengine/doubao-seed-2-0-pro-260215", "qwen/qwen3-max"] }
         ]
     },
     {

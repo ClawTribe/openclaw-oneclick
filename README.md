@@ -33,6 +33,8 @@
 
 当前安装策略为中国大陆优先：默认先使用国内 npm 镜像与 GitHub 代理；如果安装过程中遇到 [`git+https://github.com/...`](README.md:31) 这类 Git 依赖，也会在当前进程里临时注入 GitHub 代理映射，再在必要时回退官方源。
 
+**支持覆盖安装**：如果已安装 OpenClaw，脚本会自动先卸载现有版本，然后安装指定版本。
+
 ### Windows (PowerShell 管理员)
 
 ```powershell
@@ -42,6 +44,22 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.We
 Windows 脚本与 macOS / Linux 版本保持同一安装职责：先检查基础环境，再优先调用 OpenClaw 官方安装器，最后安装并注册 [`openclaw-setup`](package.json:6)。
 
 Windows 版本同样采用中国大陆优先策略：默认先使用国内 npm 镜像、GitHub 代理与临时 Git URL 映射，失败时再回退官方链路。
+
+**支持覆盖安装**：如果已安装 OpenClaw，脚本会自动先卸载现有版本，然后安装指定版本。
+
+### 指定 OpenClaw 版本
+
+默认安装的 OpenClaw 版本为 **2026.2.26**（此版本稳定性最佳，最新版本可能存在 bug）。
+
+如需安装其他版本，可通过 `OPENCLAW_VERSION` 环境变量指定：
+
+```bash
+# macOS / Linux
+OPENCLAW_VERSION=2026.2.26 curl -sSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
+
+# Windows PowerShell
+$env:OPENCLAW_VERSION='2026.2.26'; Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1'))
+```
 
 ---
 
