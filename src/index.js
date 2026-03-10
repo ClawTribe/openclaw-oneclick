@@ -161,9 +161,16 @@ async function selectOrCustomInput(item, lang, current) {
             
             // 第二步：选择该供应商下的具体模型
             const modelChoices = providers[providerChoice].map(m => {
-                const mName = m.split('/')[1];
+                let actualVal = m;
+                let tag = '';
+                if (m.includes('|')) {
+                    [actualVal, tag] = m.split('|');
+                }
+                let mName = actualVal.split('/')[1];
+                if (tag) mName += ` [${tag}]`;
+                
                 // 如果备用模型是多选模式（isArray: true），为了简化交互并降低小白负担，这里我们直接返回选中项的单选（后续会包装成数组保存）
-                return { name: m, message: mName };
+                return { name: actualVal, message: mName };
             });
             modelChoices.push({ name: '🔙 返回 (重新选择供应商)', message: '🔙 返回 (重新选择供应商)' });
             
