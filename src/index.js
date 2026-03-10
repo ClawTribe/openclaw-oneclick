@@ -353,7 +353,19 @@ async function editConfig(config, item) {
 
     let newVal;
     try {
-        if (item.type === 'boolean') {
+        if (item.type === 'action') {
+            if (item.actionType === 'update_key') {
+                const primaryModel = engine.get(config, 'agents.defaults.model.primary');
+                if (!primaryModel || primaryModel === '未配置') {
+                    console.log(ui.error('\n❌ 请先设置【主模型】，再配置对应的 API Key。'));
+                    await sleep(1500);
+                    return;
+                }
+                // 模拟一个伪装的 newVal 触发下方的 API Key 逻辑
+                newVal = primaryModel;
+                item.needsApiKey = true; // 强制标记需要 Key
+            }
+        } else if (item.type === 'boolean') {
             const p = new Toggle({
                 message: item.label[lang] + ' (开关)',
                 enabled: '🔴 开启',
@@ -384,11 +396,13 @@ async function editConfig(config, item) {
         return; // 取消
     }
 
-    if (newVal !== undefined && newVal !== current) {
+    if (newVal !== undefined && (newVal !== current || item.type === 'action')) {
         if (item.isArray && !Array.isArray(newVal)) {
             newVal = newVal ? [newVal] : [];
         }
-        engine.set(config, item.key, newVal);
+        if (item.type !== 'action') {
+            engine.set(config, item.key, newVal);
+        }
 
         // 模型选择后提示输入 API Key 并进行自动检测
         if (item.needsApiKey && newVal && String(newVal).includes('/')) {

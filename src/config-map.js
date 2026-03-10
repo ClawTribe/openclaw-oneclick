@@ -33,6 +33,13 @@ module.exports = [
                 ]
             },
             {
+                key: "agents.defaults.model.update_key",
+                label: { zh: "配置/修改 API Key", en: "Update API Key" },
+                desc: { zh: "为主模型分配或更新鉴权验证码 (API Key)", en: "Update API Key for the primary model" },
+                type: "action",
+                actionType: "update_key"
+            },
+            {
                 key: "agents.defaults.model.fallbacks",
                 label: { zh: "备用模型", en: "Fallback" },
                 desc: { zh: "主模型失败时自动切换的备选模型（建议选一个免费模型兜底）", en: "Backup when primary fails" },
