@@ -4,7 +4,7 @@ $ErrorActionPreference = 'Stop'
 
 $Version = '3.1.0'
 $InstallDir = Join-Path $HOME 'OpenClaw'
-$DefaultOpenClawVersion = '2026.2.26'
+$DefaultOpenClawVersion = 'v2026.2.26'
 $OpenClawVersion = if ($env:OPENCLAW_VERSION) { $env:OPENCLAW_VERSION } else { $DefaultOpenClawVersion }
 $OfficialInstallUrl = 'https://openclaw.ai/install.ps1'
 $OfficialProjectGit = 'https://github.com/ClawTribe/openclaw-oneclick.git'
