@@ -525,6 +525,7 @@ async function subMenu(cat) {
             }
 
             choices.push({ name: '_sep2', message: '', role: 'separator' });
+            choices.push({ name: 'back', message: `   🔙 返回上一级` });
 
             const prompt = new Select({
                 message: '选择',
