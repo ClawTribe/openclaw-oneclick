@@ -97,19 +97,21 @@ try {
     process.exit(1);
 }
 
+// 放在全局供多个函数使用
+const providerDisplayNameMap = {
+    'deepseek': '🧠 DeepSeek (深度求索)',
+    'moonshot': '🌙 Kimi (月之暗面)',
+    'glm': '🎯 GLM (智谱清言)',
+    'qwen': '🚀 Qwen (通义千问)',
+    'minimax': '🎨 MiniMax (海螺)',
+    'volcengine': '🔥 Doubao (火山豆包)',
+    'bailian': '☁️ 阿里云百炼 (BaiLian)',
+    'zai': '✨ 智谱 AI (ZAI)'
+};
+
 async function selectOrCustomInput(item, lang, current) {
     // 针对大模型的两步选择优化
     if (item.key === 'agents.defaults.model.primary' || item.key === 'agents.defaults.model.fallbacks') {
-        const providerDisplayNameMap = {
-            'deepseek': '🧠 DeepSeek (深度求索)',
-            'moonshot': '🌙 Kimi (月之暗面)',
-            'glm': '🎯 GLM (智谱清言)',
-            'qwen': '🚀 Qwen (通义千问)',
-            'minimax': '🎨 MiniMax (海螺)',
-            'volcengine': '🔥 Doubao (火山豆包)',
-            'bailian': '☁️ 阿里云百炼 (BaiLian)',
-            'zai': '✨ 智谱 AI (ZAI)'
-        };
 
         while (true) {
             const providers = {};
@@ -356,13 +358,25 @@ async function editConfig(config, item) {
         if (item.type === 'action') {
             if (item.actionType === 'update_key') {
                 const primaryModel = engine.get(config, 'agents.defaults.model.primary');
-                if (!primaryModel || primaryModel === '未配置') {
-                    console.log(ui.error('\n❌ 请先设置【主模型】，再配置对应的 API Key。'));
-                    await sleep(1500);
-                    return;
-                }
+                let initialProvider = (primaryModel && primaryModel !== '未配置') ? primaryModel.split('/')[0] : '';
+                
+                const providerChoices = Object.keys(providerDisplayNameMap).map(p => ({
+                    name: p,
+                    message: providerDisplayNameMap[p]
+                }));
+                providerChoices.push({ name: '🔙 返回 (取消)', message: '🔙 返回 (取消)' });
+
+                const providerPicker = new Select({
+                    message: '请选择要配置/修改哪个厂商的 API Key:',
+                    choices: providerChoices,
+                    initial: initialProvider ? Object.keys(providerDisplayNameMap).indexOf(initialProvider) : 0
+                });
+                
+                const selectedProvider = await providerPicker.run();
+                if (selectedProvider === '🔙 返回 (取消)') return;
+
                 // 模拟一个伪装的 newVal 触发下方的 API Key 逻辑
-                newVal = primaryModel;
+                newVal = `${selectedProvider}/placeholder-model`;
                 item.needsApiKey = true; // 强制标记需要 Key
             }
         } else if (item.type === 'boolean') {
@@ -486,16 +500,18 @@ async function editConfig(config, item) {
                             'zai': 'GLM_API_KEY',
                             'bailian': 'DASHSCOPE_API_KEY'
                         };
-                        const providerDisplayNameMap = {
+                        const providerDisplayNameMapInternal = {
                             minimax: 'MiniMax',
                             glm: 'GLM',
                             moonshot: 'Kimi',
                             volcengine: 'Doubao',
-                            qwen: 'Qwen'
+                            qwen: 'Qwen',
+                            zai: '智谱 AI (ZAI)',
+                            bailian: '阿里云百炼 (BaiLian)'
                         };
-                        const normProvider = provider.replace('-cli', '');
+                        const normProvider = provider.toLowerCase();
                         const envVar = envMap[normProvider] || `${provider.toUpperCase()}_API_KEY`;
-                        const providerDisplayName = providerDisplayNameMap[normProvider] || provider.toUpperCase();
+                        const providerDisplayName = providerDisplayNameMapInternal[normProvider] || provider.toUpperCase();
                         
                         console.log(ui.msg('gray', `\n注: ${providerDisplayName} 依靠底层系统的环境变量 ${envVar} 运行（而非写死在项目配置中）。`));
                         
