@@ -406,14 +406,17 @@ async function editConfig(config, item) {
                     'openai': 'https://platform.openai.com/api-keys'
                 };
                 const link = helperLinks[provider.toLowerCase()];
+                let promptMsg = `请输入 ${provider.toUpperCase()} API Key (留空跳过):`;
                 if (link) {
                     console.log(ui.msg('cyan', `\n🔗 获取 ${provider.toUpperCase()} Key 的地址:`));
                     console.log(ui.msg('yellow', `   ${link}`));
+                    // 同时也把它放进 prompt 提示词里，确保视觉焦点一致
+                    promptMsg = `请输入 ${provider.toUpperCase()} API Key (官网: ${link}):`;
                 } else {
                     console.log(ui.info(`\n👉 ${provider.toUpperCase()} 模型需要 API Key`));
                 }
                 try {
-                    const keyPrompt = new Input({ message: `请输入 ${provider.toUpperCase()} API Key (留空跳过):` });
+                    const keyPrompt = new Input({ message: promptMsg });
                     const apiKey = await keyPrompt.run();
                     const cleanKey = apiKey ? apiKey.trim() : '';
                     
