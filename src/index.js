@@ -575,20 +575,29 @@ async function onboardWizard() {
             }
         }
 
-        // 4. 沙箱与安全控制
-        console.log(ui.msg('magenta', '\n【第三步：安全与系统控制权限】'));
+        // 4. 时区与工作目录 (系统默认接管)
+        console.log(ui.msg('magenta', '\n【第三步：配置时区与工作根目录】'));
+        console.log(ui.msg('gray', '   已为您自动配置时区为 Asia/Shanghai (北京时间)。'));
+        engine.set(config, 'agents.defaults.userTimezone', 'Asia/Shanghai');
+        
+        const defaultWorkspace = require('path').join(require('os').homedir(), '.openclaw/workspace');
+        console.log(ui.msg('gray', `   已为您自动设置工作目录为: ${defaultWorkspace}`));
+        engine.set(config, 'agents.defaults.workspace', defaultWorkspace);
+
+        // 5. 沙箱与安全控制
+        console.log(ui.msg('magenta', '\n【第四步：安全与系统控制权限】'));
         const secCat = SCHEMA.find(c => c.id === 'security');
         const execPolicy = secCat.items.find(i => i.key === 'tools.exec.security');
         await editConfig(config, execPolicy);
 
-        // 5. 浏览器配置 (默认开启并强制为有头模式)
-        console.log(ui.msg('magenta', '\n【第四步：配置可视化的智能浏览器】'));
+        // 6. 浏览器配置 (默认开启并强制为有头模式)
+        console.log(ui.msg('magenta', '\n【第五步：配置可视化的智能浏览器】'));
         console.log(ui.msg('gray', '   已为您自动开启可视化浏览器选项，后续机器人操作网页时您将能直接看到它的动作！'));
         engine.set(config, 'browser.enabled', true);
         engine.set(config, 'browser.headless', false);
 
-        // 6. 预装常用 Skills 技能库
-        console.log(ui.msg('magenta', '\n【第五步：安装强大的中文开箱即用扩展包】'));
+        // 7. 预装常用 Skills 技能库
+        console.log(ui.msg('magenta', '\n【第六步：安装强大的中文开箱即用扩展包】'));
         const skillPrompt = new Toggle({ message: '是否为您一键预装核心中文技能？（推荐，包含联网搜索、日历和基础工具）', enabled: '是, 马上安装', disabled: '跳过', initial: true });
         if (await skillPrompt.run()) {
             console.log(ui.info('\n正在为您安装推荐技能包... (这可能需要几秒钟)'));
@@ -603,8 +612,8 @@ async function onboardWizard() {
             }
         }
 
-        // 7. 守护进程安装
-        console.log(ui.msg('magenta', '\n【第六步：安装驻留后台服务】'));
+        // 8. 守护进程安装
+        console.log(ui.msg('magenta', '\n【第七步：安装驻留后台服务】'));
         await installDaemonWizard();
 
         console.log(ui.msg('green', '\n🎉 太棒了！所有的初始化配置均已完成。'));
