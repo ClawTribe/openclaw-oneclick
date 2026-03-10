@@ -22,8 +22,7 @@ module.exports = [
                     "glm/GLM-5",
                     "qwen/qwen3-max",
                     "minimax/MiniMax-M2.5",
-                    "volcengine/doubao-seed-2-0-pro-260215",
-                    "自定义"
+                    "volcengine/doubao-seed-2-0-pro-260215"
                 ]
             },
             {
@@ -39,8 +38,7 @@ module.exports = [
                     "glm/GLM-4.7-FlashX",
                     "qwen/qwen3.5-flash",
                     "minimax/MiniMax-M2.5-highspeed",
-                    "volcengine/doubao-seed-2-0-lite-260215",
-                    "自定义"
+                    "volcengine/doubao-seed-2-0-lite-260215"
                 ]
             },
             {
