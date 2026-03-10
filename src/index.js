@@ -416,10 +416,19 @@ async function editConfig(config, item) {
                         
                         console.log(ui.msg('gray', `\n注: ${providerDisplayName} 依靠底层系统的环境变量 ${envVar} 运行（而非写死在项目配置中）。`));
                         
+                        // == 新增: 顺带处理自定义 BaseURL 配置 ==
+                        let baseUrl = '';
+                        if (!['openai', 'anthropic', 'google', 'deepseek', 'minimax', 'glm', 'moonshot', 'volcengine', 'qwen', 'google-gemini'].includes(normProvider)) {
+                            console.log(ui.info(`\n👉 检测到您输入了非标准模型提供商。若是第三方中转代理，可能需要指定 API 地址`));
+                            const basePrompt = new Input({ message: `请输入代理中转的 Base URL (如 https://api.proxy.com/v1，不需要代理则可直接回车跳过):` });
+                            const inputUrl = await basePrompt.run();
+                            baseUrl = inputUrl ? inputUrl.trim() : '';
+                        }
+                        
                         // 第 3 步：一键注入系统变量
                         try {
                             const injectPrompt = new Toggle({
-                                message: `是否由脚本一键将 ${envVar} 注入到您的系统环境变量中 ?`,
+                                message: `是否由脚本一键将环境变量写入您的系统 ?`,
                                 enabled: '一键写入',
                                 disabled: '稍后手动配',
                                 initial: true
@@ -429,6 +438,8 @@ async function editConfig(config, item) {
                                 if (process.platform === 'win32') {
                                     // Windows 环境变量写入 (通过 setx 写入用户变量)
                                     execSync(`setx ${envVar} "${cleanKey}"`, { stdio: 'ignore' });
+                                    if (baseUrl) execSync(`setx OPENAI_BASE_URL "${baseUrl}"`, { stdio: 'ignore' });
+                                    
                                     console.log(ui.success(`🎉 成功保存至 Windows 用户环境变量！\n   为使环境变量生效，请重启当前终端命令提示符。`));
                                 } else {
                                     // macOS / Linux 终端配置写入
@@ -440,13 +451,20 @@ async function editConfig(config, item) {
                                     if (fs.existsSync(shellPath)) {
                                         content = fs.readFileSync(shellPath, 'utf8');
                                     }
-                                    const exportCmd = `export ${envVar}="${cleanKey}"`;
-                                    if (content.includes(`export ${envVar}=`)) {
-                                        const regex = new RegExp(`export ${envVar}=.*`, 'g');
-                                        content = content.replace(regex, exportCmd);
-                                    } else {
-                                        content += `\n\n# OpenClaw Auto Inject for ${envVar}\n${exportCmd}\n`;
+                                    
+                                    const rawExports = [ `export ${envVar}="${cleanKey}"` ];
+                                    if (baseUrl) rawExports.push(`export OPENAI_BASE_URL="${baseUrl}"`);
+                                    
+                                    for (const exportCmd of rawExports) {
+                                        const keyOnly = exportCmd.split('=')[0];
+                                        if (content.includes(`${keyOnly}=`)) {
+                                            const regex = new RegExp(`${keyOnly}=.*`, 'g');
+                                            content = content.replace(regex, exportCmd);
+                                        } else {
+                                            content += `\n# OpenClaw Auto Inject\n${exportCmd}\n`;
+                                        }
                                     }
+                                    
                                     fs.writeFileSync(shellPath, content);
                                     console.log(ui.success(`🎉 成功保存至 ~/${shellFile}！\n   为使环境变量生效，请在主终端执行 'source ~/${shellFile}' 然后重启应用。`));
                                 }
