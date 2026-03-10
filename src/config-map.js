@@ -79,144 +79,32 @@ module.exports = [
         isCategory: true,
         subCategories: [
             {
-                id: "whatsapp",
-                label: { zh: "WhatsApp", en: "WhatsApp" },
-                specialActions: [
-                    { id: "login", label: { zh: "扫码登录", en: "QR Login" }, command: "openclaw channels login" }
-                ],
+                id: "feishu",
+                label: { zh: "飞书", en: "Feishu / Lark" },
                 items: [
                     {
-                        key: "channels.whatsapp.dmPolicy",
-                        label: { zh: "私信策略", en: "DM Policy" },
-                        desc: { zh: "open=任何人可私聊, allowlist=仅白名单, deny=禁止", en: "Who can DM you" },
-                        type: "enum",
-                        options: ["open", "allowlist", "deny"]
-                    },
-                    {
-                        key: "channels.whatsapp.allowFrom",
-                        label: { zh: "白名单", en: "Allow List" },
-                        desc: { zh: "允许私聊的手机号，格式 +8613800138000", en: "Allowed phone numbers" },
-                        type: "string",
-                        isArray: true
-                    },
-                    {
-                        key: "channels.whatsapp.sendReadReceipts",
-                        label: { zh: "已读回执", en: "Read Receipts" },
-                        desc: { zh: "是否发送已读状态给对方", en: "Send read status" },
-                        type: "boolean"
-                    }
-                ]
-            },
-            {
-                id: "tg",
-                label: { zh: "Telegram", en: "Telegram" },
-                items: [
-                    {
-                        key: "channels.telegram.botToken",
-                        label: { zh: "Bot Token", en: "Bot Token" },
-                        desc: { zh: "从 @BotFather 创建机器人后获取的令牌", en: "Token from @BotFather" },
+                        key: "channels.feishu.appId",
+                        label: { zh: "App ID", en: "App ID" },
+                        desc: { zh: "在飞书开发者后台创建的企业自建应用 App ID", en: "App ID from Feishu Developer console" },
                         type: "string"
                     },
                     {
-                        key: "channels.telegram.dmPolicy",
-                        label: { zh: "私信策略", en: "DM Policy" },
-                        desc: { zh: "谁可以和机器人私聊", en: "Who can DM the bot" },
-                        type: "enum",
-                        options: ["open", "allowlist", "deny"]
-                    },
-                    {
-                        key: "channels.telegram.allowFrom",
-                        label: { zh: "白名单", en: "Allow List" },
-                        desc: { zh: "允许的 Telegram 用户 ID 数字", en: "Allowed user IDs" },
-                        type: "string",
-                        isArray: true
-                    }
-                ]
-            },
-            {
-                id: "discord",
-                label: { zh: "Discord", en: "Discord" },
-                items: [
-                    {
-                        key: "channels.discord.botToken",
-                        label: { zh: "Bot Token", en: "Bot Token" },
-                        desc: { zh: "Discord 开发者门户 > 应用 > Bot 页面获取", en: "From Discord Developer Portal" },
+                        key: "channels.feishu.appSecret",
+                        label: { zh: "App Secret", en: "App Secret" },
+                        desc: { zh: "企业自建应用的 App Secret", en: "App Secret from Feishu" },
                         type: "string"
                     },
                     {
-                        key: "channels.discord.guildIds",
-                        label: { zh: "服务器 ID", en: "Guild IDs" },
-                        desc: { zh: "机器人允许运行的服务器，右键服务器复制 ID", en: "Servers where bot runs" },
-                        type: "string",
-                        isArray: true
-                    }
-                ]
-            },
-            {
-                id: "slack",
-                label: { zh: "Slack", en: "Slack" },
-                items: [
-                    {
-                        key: "channels.slack.appToken",
-                        label: { zh: "App Token", en: "App Token" },
-                        desc: { zh: "xapp- 开头的应用级令牌", en: "xapp- prefixed token" },
+                        key: "channels.feishu.encryptKey",
+                        label: { zh: "Encrypt Key (可选)", en: "Encrypt Key" },
+                        desc: { zh: "事件订阅中的 Encrypt Key，未开启加密则留空", en: "Event subscription Encrypt Key" },
                         type: "string"
                     },
                     {
-                        key: "channels.slack.botToken",
-                        label: { zh: "Bot Token", en: "Bot Token" },
-                        desc: { zh: "xoxb- 开头的机器人令牌", en: "xoxb- prefixed token" },
+                        key: "channels.feishu.verificationToken",
+                        label: { zh: "Verification Token (可选)", en: "Verification Token" },
+                        desc: { zh: "事件订阅中的 Verification Token", en: "Event subscription Verification Token" },
                         type: "string"
-                    }
-                ]
-            },
-            {
-                id: "signal",
-                label: { zh: "Signal", en: "Signal" },
-                items: [
-                    {
-                        key: "channels.signal.phoneNumber",
-                        label: { zh: "手机号", en: "Phone" },
-                        desc: { zh: "Signal 账号绑定的手机号", en: "Signal account phone" },
-                        type: "string"
-                    }
-                ]
-            },
-            {
-                id: "mattermost",
-                label: { zh: "Mattermost", en: "Mattermost" },
-                items: [
-                    {
-                        key: "channels.mattermost.serverUrl",
-                        label: { zh: "服务器", en: "Server" },
-                        desc: { zh: "Mattermost 服务器地址，如 https://mm.company.com", en: "Mattermost server URL" },
-                        type: "string"
-                    },
-                    {
-                        key: "channels.mattermost.botToken",
-                        label: { zh: "Bot Token", en: "Bot Token" },
-                        desc: { zh: "在集成管理中创建的机器人令牌", en: "Bot token from integrations" },
-                        type: "string"
-                    }
-                ]
-            },
-            {
-                id: "imessage",
-                label: { zh: "iMessage", en: "iMessage" },
-                items: [
-                    {
-                        key: "channels.imessage.dmPolicy",
-                        label: { zh: "私信策略", en: "DM Policy" },
-                        desc: { zh: "仅 macOS 有效，需要授权消息读取权限", en: "macOS only, needs permission" },
-                        type: "enum",
-                        options: ["open", "allowlist", "deny"]
-                    },
-                    {
-                        key: "channels.imessage.allowFrom",
-                        label: { zh: "白名单", en: "Allow List" },
-                        desc: { zh: "policy=open 时填 * 表示所有人", en: "Use * for everyone when open" },
-                        type: "string",
-                        isArray: true
                     }
                 ]
             }
