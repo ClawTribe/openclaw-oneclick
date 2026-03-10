@@ -98,6 +98,91 @@ try {
 }
 
 async function selectOrCustomInput(item, lang, current) {
+    // 针对大模型的两步选择优化
+    if (item.key === 'agents.defaults.model.primary' || item.key === 'agents.defaults.model.fallbacks') {
+        const providerDisplayNameMap = {
+            'deepseek': '🧠 DeepSeek (深度求索)',
+            'moonshot': '🌙 Kimi (月之暗面)',
+            'glm': '🎯 GLM (智谱清言)',
+            'qwen': '🚀 Qwen (通义千问)',
+            'minimax': '🎨 MiniMax (海螺)',
+            'volcengine': '🔥 Doubao (火山豆包)'
+        };
+
+        while (true) {
+            const providers = {};
+            const specialOptions = [];
+            
+            for (const opt of item.options) {
+                if (opt.includes('/')) {
+                    const provider = opt.split('/')[0];
+                    if (!providers[provider]) providers[provider] = [];
+                    providers[provider].push(opt);
+                } else {
+                    specialOptions.push(opt);
+                }
+            }
+            
+            const providerChoices = Object.keys(providers).map(p => ({
+                name: p,
+                message: providerDisplayNameMap[p] || p.toUpperCase()
+            }));
+            
+            providerChoices.push(...specialOptions.map(opt => ({ name: opt, message: opt })));
+            providerChoices.push({ name: '✍️ 手动输入', message: '✍️ 手动输入' });
+            providerChoices.push({ name: '🔙 返回 (取消配置)', message: '🔙 返回 (取消配置)' });
+
+            const providerPicker = new Select({
+                message: `[1/2] 请先选择供应商 (${item.label[lang]}) (按上下键选择，回车确认):`,
+                choices: providerChoices
+            });
+            
+            const providerChoice = await providerPicker.run();
+
+            if (providerChoice === '🔙 返回 (取消配置)') {
+                return undefined;
+            }
+
+            if (providerChoice === '自定义' || providerChoice === '✍️ 手动输入') {
+                const inputPrompt = new Input({
+                    message: `⌨️ 请手动输入 [${item.label[lang]}] 的内容:`,
+                    initial: Array.isArray(current) ? current.join(', ') : (current || '')
+                });
+                const raw = await inputPrompt.run();
+                if (item.isArray) {
+                    return raw.split(',').map(s => s.trim()).filter(Boolean);
+                }
+                return raw;
+            }
+            
+            if (specialOptions.includes(providerChoice)) {
+                return providerChoice;
+            }
+            
+            // 第二步：选择该供应商下的具体模型
+            const modelChoices = providers[providerChoice].map(m => {
+                const mName = m.split('/')[1];
+                // 如果备用模型是多选模式（isArray: true），为了简化交互并降低小白负担，这里我们直接返回选中项的单选（后续会包装成数组保存）
+                return { name: m, message: mName };
+            });
+            modelChoices.push({ name: '🔙 返回 (重新选择供应商)', message: '🔙 返回 (重新选择供应商)' });
+            
+            const modelPicker = new Select({
+                message: `[2/2] 请选择 [${providerDisplayNameMap[providerChoice] || providerChoice.toUpperCase()}] 的具体模型型号:`,
+                choices: modelChoices
+            });
+            
+            const modelChoice = await modelPicker.run();
+            
+            if (modelChoice === '🔙 返回 (重新选择供应商)') {
+                continue; // 重新进入 while(true) 循环，回到上一步选供应商界面
+            }
+            
+            return modelChoice;
+        }
+    }
+
+    // 默认的普通配置项平铺列表处理逻辑
     const choices = [
         ...(item.options || []),
         '✍️ 手动输入',
