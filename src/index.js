@@ -284,7 +284,20 @@ async function testApiKey(provider, apiKey) {
                 }),
                 signal: controller.signal
             });
+        } else if (normProvider === 'zai') {
+            // 智谱 AI (ZAI) 验证逻辑与 GLM 一致
+            res = await fetch('https://open.bigmodel.cn/api/paas/v4/models', {
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+                signal: controller.signal
+            });
+        } else if (normProvider === 'bailian') {
+            // 阿里云百炼 (BaiLian) 验证逻辑与 Qwen 一致
+            res = await fetch('https://dashscope.aliyuncs.com/api/v1/models', {
+                headers: { 'Authorization': `Bearer ${apiKey}`, 'Accept': 'application/json' },
+                signal: controller.signal
+            });
         } else if (['minimax', 'glm', 'moonshot', 'volcengine', 'qwen'].includes(normProvider)) {
+            // 兼容已有配置映射 (针对非 ZAI/BaiLian 前缀的旧配置)
             const providerConfigMap = {
                 minimax: 'models.providers.minimax',
                 glm: 'models.providers.glm',
@@ -426,7 +439,9 @@ async function editConfig(config, item) {
                             'glm': 'GLM_API_KEY',
                             'moonshot': 'MOONSHOT_API_KEY',
                             'volcengine': 'ARK_API_KEY',
-                            'qwen': 'DASHSCOPE_API_KEY'
+                            'qwen': 'DASHSCOPE_API_KEY',
+                            'zai': 'GLM_API_KEY',
+                            'bailian': 'DASHSCOPE_API_KEY'
                         };
                         const providerDisplayNameMap = {
                             minimax: 'MiniMax',
@@ -443,7 +458,7 @@ async function editConfig(config, item) {
                         
                         // == 新增: 顺带处理自定义 BaseURL 配置 ==
                         let baseUrl = '';
-                        if (!['openai', 'anthropic', 'google', 'deepseek', 'minimax', 'glm', 'moonshot', 'volcengine', 'qwen', 'google-gemini'].includes(normProvider)) {
+                        if (!['openai', 'anthropic', 'google', 'deepseek', 'minimax', 'glm', 'moonshot', 'volcengine', 'qwen', 'google-gemini', 'zai', 'bailian'].includes(normProvider)) {
                             console.log(ui.info(`\n👉 检测到您输入了非标准模型提供商。若是第三方中转代理，可能需要指定 API 地址`));
                             const basePrompt = new Input({ message: `请输入代理中转的 Base URL (如 https://api.proxy.com/v1，不需要代理则可直接回车跳过):` });
                             const inputUrl = await basePrompt.run();
