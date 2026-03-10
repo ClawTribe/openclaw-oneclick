@@ -395,23 +395,49 @@ async function editConfig(config, item) {
             const modelStr = Array.isArray(newVal) ? newVal[0] : newVal;
             const provider = modelStr.split('/')[0];
             if (provider !== 'ollama') {
-                const helperLinks = {
-                    'zai': 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
-                    'glm': 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
-                    'bailian': 'https://bailian.console.aliyun.com/?apiKey=1',
-                    'qwen': 'https://bailian.console.aliyun.com/?apiKey=1',
-                    'deepseek': 'https://platform.deepseek.com/api_keys',
-                    'moonshot': 'https://platform.moonshot.cn/console/api-keys',
-                    'volcengine': 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
-                    'openai': 'https://platform.openai.com/api-keys'
+                const helperInfo = {
+                    'zai': { 
+                        key: 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
+                        base: 'https://open.bigmodel.cn/api/paas/v4'
+                    },
+                    'glm': { 
+                        key: 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
+                        base: 'https://open.bigmodel.cn/api/paas/v4'
+                    },
+                    'bailian': { 
+                        key: 'https://bailian.console.aliyun.com/?apiKey=1',
+                        base: 'https://dashscope.aliyuncs.com/api/v1'
+                    },
+                    'qwen': { 
+                        key: 'https://bailian.console.aliyun.com/?apiKey=1',
+                        base: 'https://dashscope.aliyuncs.com/api/v1'
+                    },
+                    'deepseek': { 
+                        key: 'https://platform.deepseek.com/api_keys',
+                        base: 'https://api.deepseek.com'
+                    },
+                    'moonshot': { 
+                        key: 'https://platform.moonshot.cn/console/api-keys',
+                        base: 'https://api.moonshot.cn/v1'
+                    },
+                    'volcengine': { 
+                        key: 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+                        base: 'https://ark.cn-beijing.volces.com/api/v3'
+                    },
+                    'openai': { 
+                        key: 'https://platform.openai.com/api-keys',
+                        base: 'https://api.openai.com/v1'
+                    }
                 };
-                const link = helperLinks[provider.toLowerCase()];
+                const info = helperInfo[provider.toLowerCase()];
                 let promptMsg = `请输入 ${provider.toUpperCase()} API Key (留空跳过):`;
-                if (link) {
-                    console.log(ui.msg('cyan', `\n🔗 获取 ${provider.toUpperCase()} Key 的地址:`));
-                    console.log(ui.msg('yellow', `   ${link}`));
-                    // 同时也把它放进 prompt 提示词里，确保视觉焦点一致
-                    promptMsg = `请输入 ${provider.toUpperCase()} API Key (官网: ${link}):`;
+                if (info) {
+                    console.log(ui.msg('cyan', `\n� ${provider.toUpperCase()} 官方 API 配置详情:`));
+                    console.log(ui.msg('gray', `   • 模型接口地址 (BaseURL): `) + ui.msg('white', info.base));
+                    console.log(ui.msg('gray', `   • API Key 获取地址: `) + ui.msg('yellow', info.key));
+                    
+                    // 提示语里简短一点
+                    promptMsg = `请输入 ${provider.toUpperCase()} API Key (官网: ${info.key}):`;
                 } else {
                     console.log(ui.info(`\n👉 ${provider.toUpperCase()} 模型需要 API Key`));
                 }
