@@ -534,6 +534,68 @@ async function installDaemonWizard() {
     await ask('\n按回车键返回主菜单...');
 }
 
+// ✨ 全新中文化一键引导向导 (完整替代 openclaw onboard)
+async function onboardWizard() {
+    console.clear();
+    console.log(ui.getHeader(pkg.version));
+    console.log(ui.msg('cyan', '🚀 欢迎来到 OpenClaw 初始化配置向导！\n'));
+    console.log(ui.msg('gray', '本向导将带您完整替代官方的 `openclaw onboard` 流程，'));
+    console.log(ui.msg('gray', '只需几分钟即可完成大模型、通信频道和开机自启的设置。\n'));
+
+    const config = engine.read();
+
+    try {
+        const p0 = new Toggle({ message: '准备好开始了吗？', enabled: '开始设置', disabled: '退出向导', initial: true });
+        if (!(await p0.run())) return;
+
+        // 1. 设置主模型和 API Key
+        console.log(ui.msg('magenta', '\n【第一步：配置您的 AI 主模型】'));
+        const coreCat = SCHEMA.find(c => c.id === 'core');
+        const primaryModelItem = coreCat.items.find(i => i.key === 'agents.defaults.model.primary');
+        await editConfig(config, primaryModelItem);
+
+        // 2. 备用模型
+        const fbPrompt = new Toggle({ message: '是否需要配置备用模型？(当主模型宕机时自动切换)', enabled: '是', disabled: '跳过', initial: false });
+        if (await fbPrompt.run()) {
+            const fallbackModelItem = coreCat.items.find(i => i.key === 'agents.defaults.model.fallbacks');
+            await editConfig(config, fallbackModelItem);
+        }
+
+        // 3. 通信频道 (WhatsApp, Telegram 等)
+        console.log(ui.msg('magenta', '\n【第二步：绑定通信频道 (让 AI 在哪里回复你)】'));
+        const channelsCat = SCHEMA.find(c => c.id === 'channels');
+        for (const channel of channelsCat.subCategories) {
+            const lang = engine.getLang();
+            const chPrompt = new Toggle({ message: `是否要配置 ${channel.label[lang]}?`, enabled: '配置', disabled: '跳过', initial: false });
+            if (await chPrompt.run()) {
+                console.log(ui.msg('gray', `   --- 正在配置 ${channel.label[lang]} ---`));
+                for (const item of channel.items) {
+                    await editConfig(config, item);
+                }
+            }
+        }
+
+        // 4. 沙箱与安全控制
+        console.log(ui.msg('magenta', '\n【第三步：安全与系统控制权限】'));
+        const secCat = SCHEMA.find(c => c.id === 'security');
+        const execPolicy = secCat.items.find(i => i.key === 'tools.exec.security');
+        await editConfig(config, execPolicy);
+
+        // 5. 守护进程安装 (原 install-daemon 逻辑)
+        console.log(ui.msg('magenta', '\n【第四步：安装驻留后台服务】'));
+        await installDaemonWizard();
+
+        console.log(ui.msg('green', '\n🎉 太棒了！所有的初始化配置均已完成。'));
+        console.log(ui.msg('gray', '您随时可以在主菜单中修改刚刚的各项配置。'));
+
+    } catch (e) {
+        console.log(ui.msg('yellow', '\n向导已中断。已保存部分配置。'));
+    }
+    
+    await ask('\n按回车键返回主菜单...');
+}
+
+
 // 主菜单
 async function main() {
     await checkUpdate();
@@ -555,6 +617,7 @@ async function main() {
         });
 
         choices.push({ name: '_sep', message: '', role: 'separator' });
+        choices.push({ name: 'onboard', message: `   ✨ 完整向导 (替代 onboard)` });
         choices.push({ name: 'daemon', message: `   🚀 守护服务与开机自启` });
         choices.push({ name: 'lang', message: `   🌐 ${ui.t('langSwitch')}` });
         choices.push({ name: 'restart', message: `   🔄 ${ui.t('restart')}` });
@@ -579,6 +642,11 @@ async function main() {
 
         if (choice === 'lang') {
             engine.setLang(lang === 'zh' ? 'en' : 'zh');
+            continue;
+        }
+
+        if (choice === 'onboard') {
+            await onboardWizard();
             continue;
         }
 
