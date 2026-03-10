@@ -126,8 +126,14 @@ function Invoke-OfficialInstaller {
 
     Write-Host "`n[3/6] 安装 OpenClaw 核心（国内优先模式）..." -ForegroundColor Yellow
 
-    # 覆盖安装：先卸载现有版本并备份配置
-    Write-Host '   正在卸载现有 OpenClaw 版本...' -ForegroundColor Cyan
+    # 在完全切断前，尝试停止可能正在后台运行的网关守护服务
+    if (Test-CommandExists 'openclaw') {
+        Write-Host '   正在停止可能正在运行的 OpenClaw 网关...' -ForegroundColor Cyan
+        & openclaw gateway stop 2>$null | Out-Null
+    }
+
+    Write-Host '   正在卸载现有 OpenClaw 程序代码...' -ForegroundColor Cyan
+    # 注: npm uninstall 只会删除软件代码，绝不会触碰用户的 ~/.openclaw 数据文件夹
     npm uninstall -g openclaw 2>$null | Out-Null
     
     # 备份整个目录以防止丢失插件、工作区及日志

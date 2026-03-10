@@ -163,8 +163,14 @@ run_official_installer() {
 
     echo -e "\n${YELLOW}[3/6] 安装 OpenClaw 核心（国内优先模式）...${NC}"
 
-    # 覆盖安装：先卸载现有版本并备份配置
-    echo -e "   ${CYAN}正在卸载现有 OpenClaw 版本...${NC}"
+    # 在完全切断前，尝试停止可能正在后台运行的网关守护服务
+    if command -v openclaw >/dev/null 2>&1; then
+        echo -e "   ${CYAN}正在停止可能正在运行的 OpenClaw 网关...${NC}"
+        openclaw gateway stop >/dev/null 2>&1 || true
+    fi
+
+    echo -e "   ${CYAN}正在卸载现有 OpenClaw 程序代码...${NC}"
+    # 注: npm uninstall 只会删除软件代码，绝不会触碰用户的 ~/.openclaw 数据文件夹
     npm uninstall -g openclaw 2>/dev/null || true
     
     # 备份整个目录以防止丢失插件、工作区及日志
