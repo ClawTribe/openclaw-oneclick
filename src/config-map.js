@@ -190,6 +190,20 @@ module.exports = [
                         { id: "qwen3.5-flash", name: "Qwen3.5 Flash" }
                     ]
                 }
+            },
+            {
+                key: "models.providers.custom",
+                label: { zh: "自定义 (兼容 OpenAI 代理)", en: "Custom OpenAI-compatible" },
+                desc: { zh: "配置您自己的中转代理 (如 OneAPI) 的 Base URL 和 API Key", en: "Configure custom OpenAI proxy" },
+                type: "json",
+                template: {
+                    baseUrl: "https://api.your-proxy.com/v1",
+                    apiKey: "sk-...",
+                    api: "openai-completions",
+                    models: [
+                        { id: "您的自定义模型名称", name: "Custom Model" }
+                    ]
+                }
             }
         ]
     },
