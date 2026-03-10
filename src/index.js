@@ -575,14 +575,17 @@ async function onboardWizard() {
             }
         }
 
-        // 4. 时区与工作目录 (系统默认接管)
-        console.log(ui.msg('magenta', '\n【第三步：配置时区与工作根目录】'));
-        console.log(ui.msg('gray', '   已为您自动配置时区为 Asia/Shanghai (北京时间)。'));
+        // 4. 时区、工作目录与超时 (系统默认接管)
+        console.log(ui.msg('magenta', '\n【第三步：环境基本设置】'));
+        console.log(ui.msg('gray', '   已为您自动配置时区为 Asia/Shanghai (北京时间) 以保障系统任务调度正常。'));
         engine.set(config, 'agents.defaults.userTimezone', 'Asia/Shanghai');
         
         const defaultWorkspace = require('path').join(require('os').homedir(), '.openclaw/workspace');
         console.log(ui.msg('gray', `   已为您自动设置工作目录为: ${defaultWorkspace}`));
         engine.set(config, 'agents.defaults.workspace', defaultWorkspace);
+
+        console.log(ui.msg('gray', '   已为您配置默认最大超时时间为 300 秒，以应对国内模型长文本响应慢的问题。'));
+        engine.set(config, 'agents.defaults.timeoutSeconds', '300');
 
         // 5. 沙箱与安全控制
         console.log(ui.msg('magenta', '\n【第四步：安全与系统控制权限】'));
