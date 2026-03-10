@@ -678,11 +678,10 @@ async function onboardWizard() {
         console.log(ui.msg('gray', '   已为您配置默认最大超时时间为 300 秒，以应对国内模型长文本响应慢的问题。'));
         engine.set(config, 'agents.defaults.timeoutSeconds', '300');
 
-        // 5. 沙箱与安全控制
+        // 5. 沙箱与安全控制 (系统默认接管)
         console.log(ui.msg('magenta', '\n【第四步：安全与系统控制权限】'));
-        const secCat = SCHEMA.find(c => c.id === 'security');
-        const execPolicy = secCat.items.find(i => i.key === 'tools.exec.security');
-        await editConfig(config, execPolicy);
+        console.log(ui.msg('gray', '   已为您自动配置为【完全允许命令执行】，让 AI 拥有完整的工具控制能力。'));
+        engine.set(config, 'tools.exec.security', 'allow');
 
         // 6. 浏览器配置 (默认开启并强制为有头模式)
         console.log(ui.msg('magenta', '\n【第五步：配置可视化的智能浏览器】'));
