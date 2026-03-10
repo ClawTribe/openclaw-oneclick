@@ -106,7 +106,9 @@ async function selectOrCustomInput(item, lang, current) {
             'glm': '🎯 GLM (智谱清言)',
             'qwen': '🚀 Qwen (通义千问)',
             'minimax': '🎨 MiniMax (海螺)',
-            'volcengine': '🔥 Doubao (火山豆包)'
+            'volcengine': '🔥 Doubao (火山豆包)',
+            'bailian': '☁️ 阿里云百炼 (BaiLian)',
+            'zai': '✨ 智谱 AI (ZAI)'
         };
 
         while (true) {
