@@ -728,6 +728,22 @@ async function onboardWizard() {
         engine.write(config);
         console.log(ui.msg('gray', '您随时可以在主菜单中修改刚刚的各项配置。'));
 
+        // 9. 智能引导：打开可视化的 Control-UI
+        const controlPrompt = new Toggle({ message: '配置已全部完成！是否立即打开可视化管理控制台 (Desktop)？', enabled: '立刻打开', disabled: '暂不打开', initial: true });
+        if (await controlPrompt.run()) {
+            console.log(ui.info('\n正在为您唤起 OpenClaw 可视化控制台...'));
+            try {
+                const { exec } = require('child_process');
+                const controlUrl = 'http://localhost:18789/control';
+                const startCmd = process.platform === 'darwin' ? 'open' : (process.platform === 'win32' ? 'start' : 'xdg-open');
+                exec(`${startCmd} ${controlUrl}`);
+                console.log(ui.success(`\n🚀 已在您的浏览器中唤起控制台: ${controlUrl}`));
+                console.log(ui.msg('gray', '   您可以在此直观地管理机器人、查看对话轨迹和技能状态。'));
+            } catch (e) {
+                console.log(ui.msg('yellow', '唤起浏览器失败，请手动访问 http://localhost:18789/control'));
+            }
+        }
+
     } catch (e) {
         console.log(ui.msg('yellow', '\n向导已中断。已保存部分配置。'));
     }
