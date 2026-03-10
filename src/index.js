@@ -727,27 +727,49 @@ async function main() {
     await checkUpdate();
     ui.clearPath();
 
+    let showAdvanced = false;
+
     while (true) {
         const lang = engine.getLang();
         showHeader();
 
-        console.log(ui.msg('gray', '  选择要配置的功能模块\n'));
+        console.log(ui.msg('gray', '  选择要执行的操作\n'));
 
-        const choices = SCHEMA.map((cat, i) => {
+        // 小白看不懂的高级配置池
+        const advancedCatIds = ['sessions', 'browser', 'cron', 'gateway', 'modelAdvanced', 'security', 'msgRule', 'logging'];
+
+        const choices = [];
+
+        // 1. 最瞩目的向导放第一位
+        choices.push({ name: 'onboard', message: `   ✨ 完整向导 (👑 推荐纯小白: 一键搞定所有配置)` });
+        choices.push({ name: '_sep0', message: '', role: 'separator' });
+
+        // 2. 基础核心选项
+        SCHEMA.forEach((cat, i) => {
+            if (!showAdvanced && advancedCatIds.includes(cat.id)) return;
             const style = ui.categoryStyle(cat.id);
-            return {
+            choices.push({
                 name: String(i),
                 message: `   ${ui.formatCategory(cat.id, cat.label[lang])}`,
                 hint: style.desc[lang]
-            };
+            });
         });
 
         choices.push({ name: '_sep', message: '', role: 'separator' });
-        choices.push({ name: 'onboard', message: `   ✨ 完整向导 (替代 onboard)` });
+
+        // 3. 辅助功能区
         choices.push({ name: 'daemon', message: `   🚀 守护服务与开机自启` });
+        choices.push({ name: 'restart', message: `   🔄 重启网关使配置生效` });
+        
+        // 高阶配置切换开关
+        if (!showAdvanced) {
+            choices.push({ name: 'toggle_advanced', message: `   🛠️  显示高级系统配置 (开发者/高阶玩家)` });
+        } else {
+            choices.push({ name: 'toggle_advanced', message: `   🙈 隐藏高级系统配置` });
+        }
+        
         choices.push({ name: 'lang', message: `   🌐 ${ui.t('langSwitch')}` });
-        choices.push({ name: 'restart', message: `   🔄 ${ui.t('restart')}` });
-        choices.push({ name: 'exit', message: `   🚪 ${ui.t('exit')}` });
+        choices.push({ name: 'exit', message: `   🚪 退出向导` });
 
         let choice;
         try {
@@ -776,18 +798,23 @@ async function main() {
             continue;
         }
 
+        if (choice === 'toggle_advanced') {
+            showAdvanced = !showAdvanced;
+            continue;
+        }
+
         if (choice === 'daemon') {
             await installDaemonWizard();
             continue;
         }
 
         if (choice === 'restart') {
-            console.log(ui.info(ui.t('restarting')));
+            console.log(ui.info(ui.t('restarting') || '重启中...'));
             try {
                 execSync('openclaw gateway restart', { stdio: 'inherit' });
-                console.log(ui.success(ui.t('restartOk')));
+                console.log(ui.success(ui.t('restartOk') || '重启成功'));
             } catch (e) {
-                console.log(ui.error('失败'));
+                console.log(ui.error('重启网关失败，请确保您已开启后台守护进程'));
             }
             await sleep(800);
             continue;
