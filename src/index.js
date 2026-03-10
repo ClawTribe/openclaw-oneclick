@@ -382,7 +382,23 @@ async function editConfig(config, item) {
             const modelStr = Array.isArray(newVal) ? newVal[0] : newVal;
             const provider = modelStr.split('/')[0];
             if (provider !== 'ollama') {
-                console.log(ui.info(`\n👉 ${provider} 模型需要 API Key`));
+                const helperLinks = {
+                    'zai': 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
+                    'glm': 'https://open.bigmodel.cn/usercenter/proj-mgmt/apikeys',
+                    'bailian': 'https://bailian.console.aliyun.com/?apiKey=1',
+                    'qwen': 'https://bailian.console.aliyun.com/?apiKey=1',
+                    'deepseek': 'https://platform.deepseek.com/api_keys',
+                    'moonshot': 'https://platform.moonshot.cn/console/api-keys',
+                    'volcengine': 'https://console.volcengine.com/ark/region:ark+cn-beijing/apiKey',
+                    'openai': 'https://platform.openai.com/api-keys'
+                };
+                const link = helperLinks[provider.toLowerCase()];
+                if (link) {
+                    console.log(ui.msg('cyan', `\n🔗 获取 ${provider.toUpperCase()} Key 的地址:`));
+                    console.log(ui.msg('yellow', `   ${link}`));
+                } else {
+                    console.log(ui.info(`\n👉 ${provider.toUpperCase()} 模型需要 API Key`));
+                }
                 try {
                     const keyPrompt = new Input({ message: `请输入 ${provider.toUpperCase()} API Key (留空跳过):` });
                     const apiKey = await keyPrompt.run();
