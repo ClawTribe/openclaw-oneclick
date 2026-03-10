@@ -145,7 +145,7 @@ async function selectOrCustomInput(item, lang, current) {
 
             if (providerChoice === '自定义' || providerChoice === '✍️ 手动输入') {
                 const inputPrompt = new Input({
-                    message: `⌨️ 请手动输入 [${item.label[lang]}] 的内容:`,
+                    message: `⌨️ 请手动输入 [${item.label[lang]}] (标准格式为 供应商/模型名，如 openai/gpt-4o):`,
                     initial: Array.isArray(current) ? current.join(', ') : (current || '')
                 });
                 const raw = await inputPrompt.run();
