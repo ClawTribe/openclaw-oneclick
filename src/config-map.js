@@ -16,23 +16,13 @@ module.exports = [
                 type: "enum",
                 needsApiKey: true,
                 options: [
-                    "glm/GLM-5",
-                    "deepseek/deepseek-reasoner",
                     "deepseek/deepseek-chat",
+                    "deepseek/deepseek-reasoner",
+                    "moonshot/kimi-k2.5",
+                    "glm/GLM-5",
                     "qwen/qwen3-max",
                     "minimax/MiniMax-M2.5",
-                    "moonshot/kimi-k2.5",
                     "volcengine/doubao-seed-2-0-pro-260215",
-                    "anthropic/claude-3-7-sonnet",
-                    "anthropic/claude-3-5-sonnet",
-                    "openai/o3-mini",
-                    "openai/gpt-4o",
-                    "google/gemini-2.0-pro-exp-02-05",
-                    "google/gemini-2.0-flash-thinking-exp-01-21",
-                    "google/gemini-2.0-flash",
-                    "google/gemini-1.5-pro",
-                    "ollama/llama3.3",
-                    "ollama/qwen2.5",
                     "自定义"
                 ]
             },
@@ -44,18 +34,12 @@ module.exports = [
                 isArray: true,
                 needsApiKey: true,
                 options: [
-                    "glm/GLM-4.7-FlashX",
                     "deepseek/deepseek-chat",
+                    "moonshot/kimi-k2-0905-preview",
+                    "glm/GLM-4.7-FlashX",
                     "qwen/qwen3.5-flash",
                     "minimax/MiniMax-M2.5-highspeed",
-                    "moonshot/kimi-k2-0905-preview",
                     "volcengine/doubao-seed-2-0-lite-260215",
-                    "google/gemini-2.0-flash",
-                    "google/gemini-2.0-flash-thinking-exp-01-21",
-                    "openai/gpt-4o-mini",
-                    "openai/gpt-4-turbo",
-                    "anthropic/claude-3-5-sonnet",
-                    "ollama/llama3",
                     "自定义"
                 ]
             },
@@ -427,7 +411,7 @@ module.exports = [
         label: { zh: "模型深度配置", en: "AI Model Advanced" },
         items: [
             { key: "agents.defaults.thinking", label: { zh: "全局思考模式", en: "Thinking Mode" }, type: "enum", options: ["off", "low", "medium", "high"] },
-            { key: "agents.defaults.model.primary", label: { zh: "主模型", en: "Primary" }, type: "enum", needsApiKey: true, options: ["glm/GLM-5", "qwen/qwen3-max", "minimax/MiniMax-M2.5", "moonshot/kimi-k2.5", "volcengine/doubao-seed-2-0-pro-260215", "google-gemini-cli/gemini-2.0-flash-thinking-exp-01-21", "google-gemini-cli/gemini-2.0-pro-exp-02-05", "google-gemini-cli/gemini-2.0-flash", "anthropic/claude-3-5-sonnet-latest", "openai/gpt-4o"] }
+            { key: "agents.defaults.model.primary", label: { zh: "主模型", en: "Primary" }, type: "enum", needsApiKey: true, options: ["deepseek/deepseek-chat", "moonshot/kimi-k2.5", "glm/GLM-5", "qwen/qwen3-max", "minimax/MiniMax-M2.5", "volcengine/doubao-seed-2-0-pro-260215"] }
         ]
     },
     {

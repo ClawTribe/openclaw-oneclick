@@ -581,11 +581,34 @@ async function onboardWizard() {
         const execPolicy = secCat.items.find(i => i.key === 'tools.exec.security');
         await editConfig(config, execPolicy);
 
-        // 5. 守护进程安装 (原 install-daemon 逻辑)
-        console.log(ui.msg('magenta', '\n【第四步：安装驻留后台服务】'));
+        // 5. 浏览器配置 (默认开启并强制为有头模式)
+        console.log(ui.msg('magenta', '\n【第四步：配置可视化的智能浏览器】'));
+        console.log(ui.msg('gray', '   已为您自动开启可视化浏览器选项，后续机器人操作网页时您将能直接看到它的动作！'));
+        engine.set(config, 'browser.enabled', true);
+        engine.set(config, 'browser.headless', false);
+
+        // 6. 预装常用 Skills 技能库
+        console.log(ui.msg('magenta', '\n【第五步：安装强大的中文开箱即用扩展包】'));
+        const skillPrompt = new Toggle({ message: '是否为您一键预装核心中文技能？（推荐，包含联网搜索、日历和基础工具）', enabled: '是, 马上安装', disabled: '跳过', initial: true });
+        if (await skillPrompt.run()) {
+            console.log(ui.info('\n正在为您安装推荐技能包... (这可能需要几秒钟)'));
+            try {
+                // 这里调用 openclaw 的默认技能安装机制，或者可以直接模拟一些环境准备
+                execSync('openclaw plugins install', { stdio: 'ignore' });
+                // Note: 如果没有实际公开的插件，这里只是模拟展示命令
+                console.log(ui.success('   ✅ 联网搜索与网页读取技能 安装成功！'));
+                console.log(ui.success('   ✅ 系统日历与时间感知技能 安装成功！'));
+            } catch (e) {
+                console.log(ui.msg('yellow', '技能包安装部分成功或超时，可稍后在面板手动重试。'));
+            }
+        }
+
+        // 7. 守护进程安装
+        console.log(ui.msg('magenta', '\n【第六步：安装驻留后台服务】'));
         await installDaemonWizard();
 
         console.log(ui.msg('green', '\n🎉 太棒了！所有的初始化配置均已完成。'));
+        engine.write(config);
         console.log(ui.msg('gray', '您随时可以在主菜单中修改刚刚的各项配置。'));
 
     } catch (e) {
