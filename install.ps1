@@ -130,21 +130,14 @@ function Invoke-OfficialInstaller {
     Write-Host '   正在卸载现有 OpenClaw 版本...' -ForegroundColor Cyan
     npm uninstall -g openclaw 2>$null | Out-Null
     
-    # 备份配置文件（解决版本兼容性问题）
-    Write-Host '   正在备份旧配置文件...' -ForegroundColor Cyan
-    $configFile = Join-Path $HOME '.openclaw\openclaw.json'
-    if (Test-Path $configFile) {
-        $timestamp = Get-Date -Format 'MMddHHmm'
-        $backupFile = Join-Path $HOME "openclaw.$timestamp.bak"
-        Copy-Item $configFile $backupFile
-        Write-Host "   ✓ 已备份配置至 $backupFile" -ForegroundColor Green
-    }
-    
-    # 清理配置目录
+    # 备份整个目录以防止丢失插件、工作区及日志
+    Write-Host '   正在备份旧版工作空间与配置...' -ForegroundColor Cyan
     $configDir = Join-Path $HOME '.openclaw'
     if (Test-Path $configDir) {
-        Remove-Item -Recurse -Force $configDir
-        Write-Host '   ✓ 已清理 ~/.openclaw 配置目录' -ForegroundColor Green
+        $timestamp = Get-Date -Format 'MMddHHmm'
+        $backupDir = Join-Path $HOME ".openclaw_$timestamp.bak"
+        Move-Item -Path $configDir -Destination $backupDir -Force
+        Write-Host "   ✓ 已完整备份原配置及数据至 $backupDir" -ForegroundColor Green
     }
 
     $installerFile = Join-Path $script:TempDir 'openclaw-install.ps1'

@@ -167,18 +167,12 @@ run_official_installer() {
     echo -e "   ${CYAN}正在卸载现有 OpenClaw 版本...${NC}"
     npm uninstall -g openclaw 2>/dev/null || true
     
-    # 备份配置文件（解决版本兼容性问题）
-    echo -e "   ${CYAN}正在备份旧配置文件...${NC}"
-    if [ -f "$HOME/.openclaw/openclaw.json" ]; then
-        local backup_file="$HOME/openclaw.$(date +%m%d%H%M).bak"
-        cp "$HOME/.openclaw/openclaw.json" "$backup_file"
-        echo -e "   ${GREEN}✓ 已备份配置至 ${backup_file}${NC}"
-    fi
-    
-    # 清理配置目录
+    # 备份整个目录以防止丢失插件、工作区及日志
+    echo -e "   ${CYAN}正在备份旧版工作空间与配置...${NC}"
     if [ -d "$HOME/.openclaw" ]; then
-        rm -rf "$HOME/.openclaw"
-        echo -e "   ${GREEN}✓ 已清理 ~/.openclaw 配置目录${NC}"
+        local backup_dir="$HOME/.openclaw_$(date +%m%d%H%M).bak"
+        mv "$HOME/.openclaw" "$backup_dir"
+        echo -e "   ${GREEN}✓ 已完整备份原配置及数据至 ${backup_dir}${NC}"
     fi
 
     local installer_file="$TMP_DIR/openclaw-install.sh"
