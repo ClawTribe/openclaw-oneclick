@@ -539,7 +539,12 @@ async function editConfig(config, item) {
                                     execSync(`setx ${envVar} "${cleanKey}"`, { stdio: 'ignore' });
                                     if (baseUrl) execSync(`setx OPENAI_BASE_URL "${baseUrl}"`, { stdio: 'ignore' });
                                     
-                                    console.log(ui.success(`🎉 成功保存至 Windows 用户环境变量！\n   为使环境变量生效，请重启当前终端命令提示符。`));
+                                    // 立即在当前运行线程生效，避免用户重启终端
+                                    process.env[envVar] = cleanKey;
+                                    if (baseUrl) process.env.OPENAI_BASE_URL = baseUrl;
+                                    
+                                    console.log(ui.success(`🎉 成功保存至 Windows 环境变量并已[立即生效]！`));
+                                    console.log(ui.msg('gray', '   (注：新开的命令提示符窗口也会支持，无需额外操作)'));
                                 } else {
                                     // macOS / Linux 终端配置写入
                                     const fs = require('fs');
@@ -565,7 +570,13 @@ async function editConfig(config, item) {
                                     }
                                     
                                     fs.writeFileSync(shellPath, content);
-                                    console.log(ui.success(`🎉 成功保存至 ~/${shellFile}！\n   为使环境变量生效，请在主终端执行 'source ~/${shellFile}' 然后重启应用。`));
+                                    
+                                    // 立即在当前运行线程生效，避免用户执行 source
+                                    process.env[envVar] = cleanKey;
+                                    if (baseUrl) process.env.OPENAI_BASE_URL = baseUrl;
+                                    
+                                    console.log(ui.success(`🎉 成功保存至 ~/${shellFile} 并已[立即生效]！`));
+                                    console.log(ui.msg('gray', `   (后续只需重启网关服务即可，无需再执行 source 命令)`));
                                 }
                             } else {
                                 console.log(ui.msg('yellow', `请手动设置环境变量: export ${envVar}="${cleanKey}"`));
@@ -706,7 +717,10 @@ async function installDaemonWizard() {
         console.log(ui.info('\n正在将 OpenClaw 注入到系统后台服务...'));
         
         // 使用 pm2 启动并管理 openclaw gateway
-        const startCmd = process.platform === 'win32' ? 'pm2 start openclaw -f --name "openclaw" -- gateway start' : 'pm2 start "$(which openclaw)" -f --name "openclaw" -- gateway start';
+        // 关键：加入 --update-env 确保最新的 process.env 被同步给后台进程
+        const startCmd = process.platform === 'win32' 
+            ? 'pm2 start openclaw -f --update-env --name "openclaw" -- gateway start' 
+            : `pm2 start "$(which openclaw)" -f --update-env --name "openclaw" -- gateway start`;
         
         try { execSync('pm2 stop openclaw', { stdio: 'ignore' }); } catch (e) {}
         try { execSync('pm2 delete openclaw', { stdio: 'ignore' }); } catch (e) {}
@@ -921,8 +935,14 @@ async function main() {
 
             console.log(ui.info(ui.t('restarting') || '重启中...'));
             try {
-                execSync('openclaw gateway restart', { stdio: 'inherit' });
-                console.log(ui.success(ui.t('restartOk') || '重启成功'));
+                // 优先尝试 pm2 模式重启并同步环境变量
+                try {
+                    execSync('pm2 restart openclaw --update-env', { stdio: 'ignore' });
+                } catch (e) {
+                    // 如果不是 pm2 运行，尝试普通重启
+                    execSync('openclaw gateway restart', { stdio: 'inherit' });
+                }
+                console.log(ui.success(ui.t('restartOk') || '重启成功 (环境变量已同步)'));
             } catch (e) {
                 console.log(ui.error('重启网关失败，请确保您已开启后台守护进程'));
             }
