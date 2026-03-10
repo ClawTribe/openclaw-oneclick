@@ -17,20 +17,7 @@ $PreferredProjectGit = 'https://ghfast.top/https://github.com/ClawTribe/openclaw
 $PreferredNpmRegistry = 'https://registry.npmmirror.com'
 $PreferredGitInsteadOf = 'https://ghfast.top/https://github.com/'
 
-$Banner = @"
-    ┌──────────────────────────────────────────────────┐
-    │                                                  │
-    │                  __                              │
-    │                <(o )___                          │
-    │                 ( ._> /                          │
-    │                  ``---'                          │
-    │            ~~~~~~~~~~~~~~~~~~                    │
-    │                                                  │
-    │            OpenClaw 智能管理中心                 │
-    │               作者: ClawTribe | v$Version        │
-    └──────────────────────────────────────────────────┘
-"@
-Write-Host $Banner -ForegroundColor Cyan
+# Welcome banner removed by request
 
 function Ensure-TempDir {
     if (-not $script:TempDir) {
