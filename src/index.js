@@ -100,13 +100,19 @@ try {
 async function selectOrCustomInput(item, lang, current) {
     const choices = [
         ...(item.options || []),
-        '✍️ 手动输入'
+        '✍️ 手动输入',
+        '🔙 返回 (取消配置)'
     ];
     const picker = new Select({
         message: item.label[lang] + ' (按上下键选择，回车确认):',
         choices
     });
     const choice = await picker.run();
+    
+    if (choice === '🔙 返回 (取消配置)') {
+        return undefined; // 特殊标记：未作修改，要求返回
+    }
+
     if (choice === '自定义' || choice === '✍️ 手动输入') {
         const inputPrompt = new Input({
             message: `⌨️ 请手动输入 [${item.label[lang]}] 的内容:`,
