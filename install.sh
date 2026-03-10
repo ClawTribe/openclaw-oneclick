@@ -166,7 +166,8 @@ run_official_installer() {
     # 在完全切断前，尝试停止可能正在后台运行的网关守护服务
     if command -v openclaw >/dev/null 2>&1; then
         echo -e "   ${CYAN}正在停止可能正在运行的 OpenClaw 网关...${NC}"
-        openclaw gateway stop >/dev/null 2>&1 || true
+        # 使用 timeout 强行截断可能因为端口卡死而超时的命令
+        timeout 5 openclaw gateway stop >/dev/null 2>&1 || true
     fi
 
     echo -e "   ${CYAN}正在卸载现有 OpenClaw 程序代码...${NC}"
