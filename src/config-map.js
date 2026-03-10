@@ -12,7 +12,7 @@ module.exports = [
             {
                 key: "agents.defaults.model.primary",
                 label: { zh: "主模型", en: "Primary Model" },
-                desc: { zh: "AI 使用的主要模型，影响回复质量和速度", en: "Main AI model for responses" },
+                desc: { zh: "AI 使用的主要模型，影响回复质量和速度（推荐新手先选免费的 GLM-4.7-Flash）", en: "Main AI model for responses" },
                 type: "enum",
                 needsApiKey: true,
                 options: [
@@ -35,7 +35,7 @@ module.exports = [
             {
                 key: "agents.defaults.model.fallbacks",
                 label: { zh: "备用模型", en: "Fallback" },
-                desc: { zh: "主模型失败时自动切换的备选模型", en: "Backup when primary fails" },
+                desc: { zh: "主模型失败时自动切换的备选模型（建议选一个免费模型兜底）", en: "Backup when primary fails" },
                 type: "enum",
                 isArray: true,
                 needsApiKey: true,
