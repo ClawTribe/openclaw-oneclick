@@ -589,12 +589,13 @@ async function installDaemonWizard() {
         console.log(ui.info('\n正在将 OpenClaw 注入到系统后台服务...'));
         
         // 使用 pm2 启动并管理 openclaw gateway
-        const startCmd = process.platform === 'win32' ? 'pm2 start openclaw --name "openclaw" -- gateway start' : 'pm2 start "$(which openclaw)" --name "openclaw" -- gateway start';
+        const startCmd = process.platform === 'win32' ? 'pm2 start openclaw -f --name "openclaw" -- gateway start' : 'pm2 start "$(which openclaw)" -f --name "openclaw" -- gateway start';
         
-        execSync('pm2 stop openclaw 2>/null || true', { stdio: 'ignore' });
-        execSync('pm2 delete openclaw 2>/null || true', { stdio: 'ignore' });
+        try { execSync('pm2 stop openclaw', { stdio: 'ignore' }); } catch (e) {}
+        try { execSync('pm2 delete openclaw', { stdio: 'ignore' }); } catch (e) {}
+        
         execSync(startCmd, { stdio: 'inherit' });
-        execSync('pm2 save', { stdio: 'inherit' });
+        try { execSync('pm2 save', { stdio: 'inherit' }); } catch (e) {}
         
         // 显示自启命令建议
         console.log(ui.success('🎉 开机自启服务安装并启动成功！'));
