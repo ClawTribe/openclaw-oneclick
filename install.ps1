@@ -1,6 +1,8 @@
 # OpenClaw Windows Deployment Script
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
+$global:Success = $false
+$global:HasError = $false
 
 $Version = '3.1.0'
 $InstallDir = Join-Path $HOME 'OpenClaw'
@@ -208,12 +210,18 @@ function Invoke-OfficialInstaller {
         }
     }
 
-    # 【关键修复】对官方安装器进行热补丁，防止因为 NPM 输出到 Stderr 而导致 PowerShell NativeCommandError 崩溃
+    # 【关键修复】对官方安装器进行热补丁，并消除官方脚本中的潜在报错诱因
     if (Test-Path $installerFile) {
-        $content = Get-Content $installerFile
-        $newContent = $content -replace "\$ErrorActionPreference = 'Stop'", "`$ErrorActionPreference = 'Continue'"
-        $newContent | Set-Content $installerFile
-        Write-Host '   ✓ 已应用脚本兼容性补丁' -ForegroundColor Gray
+        $content = Get-Content $installerFile -Raw
+        # 更加兼容的正则：匹配任何形式的 $ErrorActionPreference 设置
+        $newContent = $content -replace '(?m)^\s*\$ErrorActionPreference\s*=\s*[''"]\w+[''"]', '$ErrorActionPreference = "Continue"'
+        # 强制将日志等级提升，方便排查真实的 NPM 网络问题
+        $newContent = $newContent -replace "NPM_CONFIG_LOGLEVEL\s*=\s*[''"]\w+[''"]", "NPM_CONFIG_LOGLEVEL = 'notice'"
+        # 注入国内加速镜像到官方子脚本
+        $newContent = $newContent -replace 'npm install -g', "npm install -g --registry=$PreferredNpmRegistry"
+        
+        $newContent | Set-Content $installerFile -Encoding UTF8
+        Write-Host "   ✓ 已成功注入深度兼容性补丁与加速镜像" -ForegroundColor Gray
     }
 
     $env:npm_config_registry = $PreferredNpmRegistry
@@ -223,6 +231,8 @@ function Invoke-OfficialInstaller {
     $env:GIT_CONFIG_VALUE_0 = 'https://github.com/'
     $env:GIT_CONFIG_KEY_1 = "url.$PreferredGitInsteadOf.insteadOf"
     $env:GIT_CONFIG_VALUE_1 = 'git+https://github.com/'
+    
+    # 显式使用环境变量提升兼容性
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -eq 0) {
         Write-Host '   ✓ OpenClaw 核心安装完成' -ForegroundColor Green
@@ -234,13 +244,13 @@ function Invoke-OfficialInstaller {
     Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:GIT_CONFIG_KEY_1, Env:GIT_CONFIG_VALUE_1 -ErrorAction SilentlyContinue
     $env:OPENCLAW_VERSION = $OpenClawVersion
     powershell -ExecutionPolicy Bypass -File $installerFile
-    if ($LASTEXITCODE -eq 0) {
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host '❌ OpenClaw 官方安装器执行失败' -ForegroundColor Red
+        # 记录错误状态供后续暂停使用
+        $global:HasError = $true
+    } else {
         Write-Host '   ✓ OpenClaw 核心安装完成（官方回退）' -ForegroundColor Green
-        return
     }
-
-    Write-Host '❌ OpenClaw 官方安装器执行失败' -ForegroundColor Red
-    exit 1
 }
 
 function Sync-ProjectCode {
@@ -299,13 +309,28 @@ try {
     Install-ProjectDependencies
     Install-ProjectCli
 
-    Write-Host "`n──────────────────────────────────────────────────" -ForegroundColor Green
-    Write-Host '✓ 部署成功！' -ForegroundColor Green
-    Write-Host '  运行 openclaw-setup 开始使用' -ForegroundColor Yellow
-    Write-Host '──────────────────────────────────────────────────' -ForegroundColor Green
+    $global:Success = $true
+}
+catch {
+    $global:HasError = $true
+    Write-Host "`n❌ 脚本运行过程中发生异常:" -ForegroundColor Red
+    Write-Host $_.Exception.Message -ForegroundColor Red
 }
 finally {
     if ($script:TempDir -and (Test-Path $script:TempDir)) {
         Remove-Item -Path $script:TempDir -Recurse -Force -ErrorAction SilentlyContinue
     }
+
+    Write-Host "`n──────────────────────────────────────────────────" -ForegroundColor Cyan
+    if ($global:Success) {
+        Write-Host "✓ 部署成功！" -ForegroundColor Green
+        Write-Host "  运行 openclaw-setup 开始使用" -ForegroundColor Yellow
+    } else {
+        Write-Host "⚠ 部署未完成或遇到错误。" -ForegroundColor Yellow
+        Write-Host "💡 如果是因为 npm 报错，建议尝试清理缓存：npm cache clean --force" -ForegroundColor Cyan
+        $global:HasError = $true
+    }
+    
+    Write-Host "`n请按 [回车键] 退出此窗口..." -ForegroundColor Yellow
+    Read-Host
 }

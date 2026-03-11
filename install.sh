@@ -31,6 +31,20 @@ echo -e "${CYAN}
 ──────────────────────────────────────────────────
 ${NC}"
 
+# 追踪安装状态
+FAILURE=0
+
+pause_on_exit() {
+    if [ $FAILURE -ne 0 ]; then
+        echo -e "\n${YELLOW}──────────────────────────────────────────────────${NC}"
+        echo -e "${YELLOW}⚠ 部署过程中遇到了一些问题，请查看上方日志。${NC}"
+        echo -e "${CYAN}请按 [回车键] 退出...${NC}"
+        read -r
+    fi
+}
+
+trap pause_on_exit EXIT
+
 echo -e "${GREEN}正在部署 OpenClaw...${NC}"
 
 cleanup() {
@@ -120,12 +134,17 @@ require_bootstrap_tools() {
 
 run_npm_command() {
     local npm_args=("$@")
-    if npm "${npm_args[@]}" --registry="$PREFERRED_NPM_REGISTRY"; then
+    if ! command_exists npm; then
+        echo -e "${RED}❌ 未检测到 npm，请先安装 Node.js${NC}"
+        return 1
+    fi
+    # 增加详细日志输出，方便排查网络问题
+    if npm "${npm_args[@]}" --registry="$PREFERRED_NPM_REGISTRY" --loglevel=notice; then
         return 0
     fi
 
     log_info "   ${YELLOW}⚠ 国内 npm 镜像失败，回退官方 npm 源重试...${NC}"
-    npm "${npm_args[@]}" --registry="$OFFICIAL_NPM_REGISTRY"
+    npm "${npm_args[@]}" --registry="$OFFICIAL_NPM_REGISTRY" --loglevel=notice
 }
 
 install_git_if_needed() {
@@ -219,6 +238,11 @@ run_official_installer() {
 
     chmod +x "$installer_file"
 
+    # 【关键修复】对官方安装器进行热补丁，防止因为网络抖动导致 set -e 强行中断
+    sed -i.bak 's/set -euo pipefail/set -uo pipefail/g' "$installer_file" 2>/dev/null || \
+    sed -i '' 's/set -euo pipefail/set -uo pipefail/g' "$installer_file" 2>/dev/null || true
+
+    local install_status=0
     if \
         GIT_CONFIG_COUNT=2 \
         GIT_CONFIG_KEY_0=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
@@ -226,22 +250,25 @@ run_official_installer() {
         GIT_CONFIG_KEY_1=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
         GIT_CONFIG_VALUE_1=git+https://github.com/ \
         npm_config_registry="$PREFERRED_NPM_REGISTRY" \
+        npm_config_loglevel="notice" \
         OPENCLAW_VERSION="$OPENCLAW_VERSION" \
         OPENCLAW_NO_ONBOARD=1 \
         bash "$installer_file" --no-onboard; then
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成${NC}"
-        return 0
+    else
+        echo -e "   ${YELLOW}⚠ 国内优先链路失败，回退官方 npm 源重试...${NC}"
+        if ! (OPENCLAW_VERSION="$OPENCLAW_VERSION" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard); then
+            echo -e "${RED}❌ OpenClaw 官方安装器执行失败${NC}"
+            install_status=1
+        else
+             echo -e "   ${GREEN}✓ OpenClaw 核心安装完成（官方回退）${NC}"
+        fi
     fi
 
-    echo -e "   ${YELLOW}⚠ 国内优先链路失败，回退官方 npm 源重试...${NC}"
-
-    if OPENCLAW_VERSION="$OPENCLAW_VERSION" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard; then
-        echo -e "   ${GREEN}✓ OpenClaw 核心安装完成（官方回退）${NC}"
-        return 0
+    if [ $install_status -ne 0 ]; then
+        FAILURE=1
+        exit 1
     fi
-
-    echo -e "${RED}❌ OpenClaw 官方安装器执行失败${NC}"
-    exit 1
 }
 
 sync_project_code() {
@@ -288,6 +315,7 @@ install_project_cli() {
         echo -e "   ${GREEN}✓ 全局命令链接成功${NC}"
     else
         echo -e "${RED}❌ 全局命令注册失败${NC}"
+        FAILURE=1
         exit 1
     fi
 }
