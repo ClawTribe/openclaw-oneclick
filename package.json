@@ -1,10 +1,13 @@
 {
     "name": "openclaw-oneclick",
-    "version": "3.2.2",
+    "version": "3.2.3",
     "description": "OpenClaw 一键安装与全中文管理工具",
     "main": "src/index.js",
     "bin": {
         "openclaw-setup": "src/index.js"
+    },
+    "scripts": {
+        "bump": "node scripts/bump_version.js"
     },
     "author": "ClawTribe",
     "license": "MIT",
