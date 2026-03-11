@@ -13,15 +13,16 @@ jobs:
     name: Build for ${{ matrix.os }} (${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: windows-latest
             arch: x64
             artifact_name: Windows-x64
-          - os: macos-latest # Intel 芯片
+          - os: macos-latest
             arch: x64
             artifact_name: macOS-x64
-          - os: macos-14     # Apple M1/M2 芯片
+          - os: macos-14
             arch: arm64
             artifact_name: macOS-arm64
 
@@ -32,34 +33,41 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22 # 锁定到 OpenClaw 推荐的 v22
+          node-version: 22
 
       - name: Install Dependencies
-        # 这一步是核心：GitHub 虚拟机会在这里完成 node-llama-cpp 等 C++ 依赖的编译
         run: npm install --production
         env:
-          # 强制从预编译下载，减少 GitHub Actions 的耗时
           NPM_CONFIG_NODE_LLAMA_CPP_SKIP_BUILD: false
 
-      - name: Cleanup Unnecessary Files
-        # 移除 .git 和测试文件，减小分发包体积
+      - name: Aggressive Pruning (Cleanup)
         shell: bash
         run: |
-          rm -rf .git .github
-          find . -name "*.md" -type f -delete
-          find . -name "*.txt" -type f -delete || true
+          # 核心代码与依赖清理
+          rm -rf .git .github .gitignore README.md LICENSE package-lock.json
+          
+          # 深度清理 node_modules 中的非运行必要文件 (docs, tests, samples 等)
+          echo "Starting aggressive pruning of node_modules..."
+          find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" -o -name ".circleci" \) -exec rm -rf {} + || true
+          find ./node_modules -type f \( -name "*.md" -o -name "*.ts" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" -o -name "Makefile" -o -name "binding.sln" -o -name "*.vcxproj*" \) -delete || true
+          
+          # 清理 node-llama-cpp 等编译残留
+          find ./node_modules -name "build" -type d -exec find {} -name "*.o" -delete \; || true
+          
+          echo "Pruning complete."
 
       - name: Create Zip Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          # 仅压缩当前目录下的内容，排除压缩包本身
-          Compress-Archive -Path * -Exclude "OpenClaw-*.zip" -DestinationPath "OpenClaw-${{ matrix.artifact_name }}.zip" -CompressionLevel Optimal
+          $zipName = "OpenClaw-${{ matrix.artifact_name }}.zip"
+          # 使用更可靠的文件获取方式
+          $items = Get-ChildItem -Path . -Exclude $zipName
+          Compress-Archive -Path $items -DestinationPath $zipName -CompressionLevel Optimal
 
       - name: Create Zip Package (macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          # 使用相对路径排除顶级目录
           zip -9 -r "OpenClaw-${{ matrix.artifact_name }}.zip" ./* -x "OpenClaw-*.zip"
 
       - name: Upload to Release
