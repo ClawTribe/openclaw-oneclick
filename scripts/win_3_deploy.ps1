@@ -23,7 +23,7 @@ try {
         $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "15", "$DownloadUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
         if ($p.ExitCode -ne 0) {
             Write-Color "   ⚠ 加速节点超时，尝试从 GitHub 源站直连..." "Yellow"
-            $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "30", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+            $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
             if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
         }
     } else {
