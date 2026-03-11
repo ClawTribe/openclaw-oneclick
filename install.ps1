@@ -213,10 +213,10 @@ function Invoke-OfficialInstaller {
     # 【关键修复】对官方安装器进行热补丁，并消除官方脚本中的潜在报错诱因
     if (Test-Path $installerFile) {
         $content = Get-Content $installerFile -Raw
-        # 更加兼容的正则：匹配任何形式的 $ErrorActionPreference 设置
-        $newContent = $content -replace '(?m)^\s*\$ErrorActionPreference\s*=\s*[''"]\w+[''"]', '$ErrorActionPreference = "Continue"'
-        # 强制将日志等级提升，方便排查真实的 NPM 网络问题
-        $newContent = $newContent -replace "NPM_CONFIG_LOGLEVEL\s*=\s*[''"]\w+[''"]", "NPM_CONFIG_LOGLEVEL = 'notice'"
+        # 更加兼容的正则：使用单引号包裹并正确转义内部单引号
+        $newContent = $content -replace '(?m)^\s*\$ErrorActionPreference\s*=\s*[''"].*?[''"]', '$ErrorActionPreference = "Continue"'
+        # 修复导致崩溃的引发词解析问题
+        $newContent = $newContent -replace 'NPM_CONFIG_LOGLEVEL\s*=\s*[''"].*?[''"]', "NPM_CONFIG_LOGLEVEL = 'notice'"
         # 注入国内加速镜像到官方子脚本
         $newContent = $newContent -replace 'npm install -g', "npm install -g --registry=$PreferredNpmRegistry"
         
