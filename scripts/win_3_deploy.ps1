@@ -16,8 +16,8 @@ Write-Color "   ➤ 隧道下载中: $PackageName" "Gray"
 
 try {
     # 绕过 ghfast 边缘缓存可能记住的 404 状态
-    $DownloadUrl = "$global:ReleaseBaseUrl/$PackageName?t=$([guid]::NewGuid().ToString())"
-    $DirectUrl = "https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version/$PackageName"
+    $DownloadUrl = $global:ReleaseBaseUrl + "/" + $PackageName + "?t=" + [guid]::NewGuid().ToString()
+    $DirectUrl = "https://github.com/" + $global:RepoUser + "/" + $global:RepoName + "/releases/download/v" + $global:Version + "/" + $PackageName
     
     if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
         $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "15", "$DownloadUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
