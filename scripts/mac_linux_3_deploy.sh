@@ -18,7 +18,7 @@ ZIP_PATH="${TMP_DIR}/${PACKAGE_NAME}"
 echo -e "   目标架构: ${OS} - ${ARCH}"
 echo -e "   正在从云端拉取 (带断点续传加速): ${PACKAGE_NAME}"
 
-if curl -fSL --progress-bar --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH" 2>/dev/null; then
+if curl -fSL --progress-bar --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH"; then
     echo -e "   ${GREEN}✓ 下载完成，正在解压与清洗目录...${NC}"
     
     if [ ! -d "$INSTALL_DIR" ]; then 
