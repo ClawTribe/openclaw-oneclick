@@ -53,27 +53,17 @@ jobs:
           mkdir core
           curl -L "https://github.com/openclaw/openclaw/archive/v2026.2.26.tar.gz" | tar -xz -C core --strip-components=1
           
-      - name: Integration (Merge Wrapper into Core)
+      - name: Prep Setup Console (openclaw-setup)
         shell: bash
         run: |
-          # 将一键管理控制台的代码注入到核心包中
-          cp -r wrapper/src core/console_src
-          cp wrapper/package.json core/package_oneclick.json
-          
-          # 更新核心包的 package.json:
-          #   1. 添加 openclaw-setup 的 bin 入口
-          #   2. 注入 wrapper 的 enquirer 依赖（openclaw-setup 运行时需要）
-          cd core
-          node -e '
-            const pkg = require("./package.json");
-            const wrapperPkg = require("./package_oneclick.json");
-            pkg.bin = { ...pkg.bin, "openclaw-setup": "./console_src/index.js" };
-            pkg.dependencies = { ...pkg.dependencies, ...wrapperPkg.dependencies };
-            const fs = require("fs");
-            fs.writeFileSync("./package.json", JSON.stringify(pkg, null, 2));
-          '
+          cd wrapper
+          echo "node-linker=hoisted" >> .npmrc
+          pnpm install --no-frozen-lockfile
+          pnpm prune --prod
+          rm -rf .git .github
+          cd ..
 
-      - name: Install Dependencies (Full - includes dev tools for build)
+      - name: Install Dependencies for Core (Full)
         shell: bash
         run: |
           cd core
@@ -88,7 +78,7 @@ jobs:
           cd core
           npm run build
 
-      - name: Prune Dev Dependencies
+      - name: Prune Core Dev Dependencies
         shell: bash
         run: |
           cd core
@@ -98,23 +88,30 @@ jobs:
         shell: bash
         run: |
           cd core
-          # 清理不必要文件，减小体积
-          rm -rf .git .github .gitignore README.md LICENSE package-lock.json package_oneclick.json
+          rm -rf .git .github .gitignore README.md LICENSE package-lock.json
           find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" \) -exec rm -rf {} + || true
           find ./node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
+          cd ..
+          
+      - name: Assemble Release Bundle
+        shell: bash
+        run: |
+          mkdir release_bundle
+          mv core release_bundle/openclaw_core
+          mv wrapper release_bundle/openclaw_setup
 
       - name: Create Zip Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          cd core
+          cd release_bundle
           $zipName = "OpenClaw-${{ matrix.artifact_name }}.zip"
           Compress-Archive -Path * -DestinationPath "../$zipName" -CompressionLevel Optimal
 
-      - name: Create Zip Package (macOS)
+      - name: Create Zip Package (macOS & Linux)
         if: matrix.os != 'windows-latest'
         run: |
-          cd core
+          cd release_bundle
           zip -9 -r "../OpenClaw-${{ matrix.artifact_name }}.zip" ./*
 
       - name: Upload to Release

@@ -50,18 +50,24 @@ fi
 
 [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
 
-echo -e "   正在将核心控制台注册到全局环境变量..."
-cd "$INSTALL_DIR" || exit 1
+echo -e "   正在将面板与核心分别绑定到全局环境变量..."
 
-# 通过 npm install -g 注册命令，由于带了 C++ 编译，有可能会需要 sudo
+# 1. 注册引导组件
+cd "$INSTALL_DIR/openclaw_setup" || exit 1
 if ! npm install -g . --registry="$NPM_REGISTRY" --silent; then
-    echo -e "   ${YELLOW}⚠ 遇到权限阻挡，尝试以管理员身份重新注入全局绑定...${NC}"
+    echo -e "   ${YELLOW}⚠ 遇到权限阻挡，正尝试以管理员身份重新注入全局绑定...${NC}"
     sudo npm install -g . --registry="$NPM_REGISTRY" --silent
 fi
 
+# 2. 注册官方核心组件
+cd "$INSTALL_DIR/openclaw_core" || exit 1
+if ! npm install -g . --registry="$NPM_REGISTRY" --silent; then
+    sudo npm install -g . --registry="$NPM_REGISTRY" --silent || echo -e "   ${YELLOW}⚠ 核心模型CLI注册出现问题，但不影响配置面板启动。${NC}"
+fi
+
 if command_exists openclaw-setup; then
-    echo -e "   ${GREEN}✓ 终端控制台 openclaw-setup 已解锁。${NC}"
+    echo -e "   ${GREEN}✓ 终端控制台与核心服务已解锁装载。${NC}"
 else
-    echo -e "   ${RED}❌ 系统环境问题，未能将 openclaw-setup 成功放入可执行目录，但代码解压完毕。${NC}"
+    echo -e "   ${RED}❌ 系统环境问题，未能成功放入可执行目录，但代码解压完毕。${NC}"
     exit 1
 fi

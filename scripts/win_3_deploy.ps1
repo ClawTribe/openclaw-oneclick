@@ -50,14 +50,22 @@ try {
 
 Remove-Item -Path $tempDir -Recurse -Force -ErrorAction SilentlyContinue
 
-Write-Color "   将 CLI 绑定到系统执行环..." "Gray"
-Set-Location $global:InstallDir
+Write-Color "   将 CLI 绑定到系统执行环境变量..." "Gray"
 
 try {
-    # 强制重新以淘宝源挂载全局
+    # 强制重新以淘宝源挂载全局 (一键向导组件)
+    Set-Location (Join-Path $global:InstallDir "openclaw_setup")
     & npm install -g . --registry=$global:NpmRegistry --silent
     if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-        throw "npm ExitCode: $LASTEXITCODE"
+        throw "npm ExitCode: $LASTEXITCODE (Setup API)"
+    }
+    
+    # 强制重新以淘宝源挂载全局 (OpenClaw 原生核心命令)
+    Set-Location (Join-Path $global:InstallDir "openclaw_core")
+    & npm install -g . --registry=$global:NpmRegistry --silent
+    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+         # 我们不因为核心注册失败而中断安装流程
+         Write-Color "   ⚠ OpenClaw 底层服务注册未能全量成功，但不影响交互向导。" "Yellow"
     }
 } catch {
     Write-Color "❌ 绑定 openclaw-setup 失败。这通常意味着缺少最高权限，或者网络极度不稳。" "Red"
@@ -65,4 +73,4 @@ try {
     exit 1
 }
 
-Write-Color "   ✓ 核心控制台已完美激活使用" "Green"
+Write-Color "   ✓ 交互面板与后台核心已完美激活挂载" "Green"
