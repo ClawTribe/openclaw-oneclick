@@ -97,8 +97,10 @@ jobs:
         shell: bash
         run: |
           mkdir release_bundle
-          mv core release_bundle/openclaw_core
-          mv wrapper release_bundle/openclaw_setup
+          # 将官方核心直接铺在打包根目录
+          mv core/* core/.[!.]* release_bundle/ 2>/dev/null || true
+          # 将我们的一键面板放入独立的寄生伴随目录
+          mv wrapper release_bundle/openclaw_oneclick
 
       - name: Create Zip Package (Windows)
         if: matrix.os == 'windows-latest'

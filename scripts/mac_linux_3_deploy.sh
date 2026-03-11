@@ -52,17 +52,17 @@ fi
 
 echo -e "   正在将面板与核心分别绑定到全局环境变量..."
 
-# 1. 注册引导组件
-cd "$INSTALL_DIR/openclaw_setup" || exit 1
+# 1. 注册官方核心组件 (主目录)
+cd "$INSTALL_DIR" || exit 1
+if ! npm install -g . --registry="$NPM_REGISTRY" --silent; then
+    sudo npm install -g . --registry="$NPM_REGISTRY" --silent || echo -e "   ${YELLOW}⚠ 核心模型CLI注册出现问题，但不影响配置面板启动。${NC}"
+fi
+
+# 2. 注册引导组件 (寄生子目录)
+cd "$INSTALL_DIR/openclaw_oneclick" || exit 1
 if ! npm install -g . --registry="$NPM_REGISTRY" --silent; then
     echo -e "   ${YELLOW}⚠ 遇到权限阻挡，正尝试以管理员身份重新注入全局绑定...${NC}"
     sudo npm install -g . --registry="$NPM_REGISTRY" --silent
-fi
-
-# 2. 注册官方核心组件
-cd "$INSTALL_DIR/openclaw_core" || exit 1
-if ! npm install -g . --registry="$NPM_REGISTRY" --silent; then
-    sudo npm install -g . --registry="$NPM_REGISTRY" --silent || echo -e "   ${YELLOW}⚠ 核心模型CLI注册出现问题，但不影响配置面板启动。${NC}"
 fi
 
 if command_exists openclaw-setup; then
