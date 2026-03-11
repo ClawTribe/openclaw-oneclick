@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.1'
+$global:Version = '3.3.2'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
