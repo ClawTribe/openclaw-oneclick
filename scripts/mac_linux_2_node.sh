@@ -19,7 +19,7 @@ if ! command_exists node || [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 22 ]; th
         PKG_PATH="${TMP_DIR}/node.pkg"
         
         echo -e "   ➤ 正在下载 macOS 安装包..."
-        curl -fsSL -o "$PKG_PATH" "$PKG_URL"
+        curl -fSL --progress-bar -o "$PKG_PATH" "$PKG_URL"
         echo -e "   ➤ 启动静默系统级安装 (如果弹窗请填入密码，或者在终端直接输入密码盲打回车)..."
         # 强制静默以避开图形UI
         sudo installer -pkg "$PKG_PATH" -target /
@@ -32,7 +32,7 @@ if ! command_exists node || [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 22 ]; th
         TAR_PATH="${TMP_DIR}/node.tar.xz"
         
         echo -e "   ➤ 正在下载 Linux 安装压缩包..."
-        curl -fsSL -o "$TAR_PATH" "$TAR_URL"
+        curl -fSL --progress-bar -o "$TAR_PATH" "$TAR_URL"
         echo -e "   ➤ 正在解压至系统目录 /usr/local ..."
         sudo tar -xJf "$TAR_PATH" -C /usr/local --strip-components=1
     fi

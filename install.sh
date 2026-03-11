@@ -36,7 +36,7 @@ run_remote_script() {
     local tmp_script=$(mktemp)
     
     echo -e "➤ 正在拉取流程套件: ${script_name} ..."
-    if ! curl -fsSL --connect-timeout 10 --max-time 30 "$script_url" -o "$tmp_script"; then
+    if ! curl -fSL --progress-bar --connect-timeout 10 --max-time 30 "$script_url" -o "$tmp_script"; then
         # 降级备用拉取：如果远程未提供，尝试在本地寻找同名文件（便于开发者本地测试）
         if [ -f "./scripts/$script_name" ]; then
             cp "./scripts/$script_name" "$tmp_script"
