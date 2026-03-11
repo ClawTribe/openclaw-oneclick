@@ -34,8 +34,12 @@ if curl -fSL --progress-bar --connect-timeout 15 "$DOWNLOAD_URL" -o "$ZIP_PATH" 
         rm -rf "$INSTALL_DIR/node_modules" "$INSTALL_DIR/dist" "$INSTALL_DIR/package.json" 2>/dev/null || true
     fi
     
-    # -o 覆盖静默解压
-    unzip -oq "$ZIP_PATH" -d "$INSTALL_DIR"
+    # 防止旧文件因为属主不同或只读权限无法覆盖，加一层强力删除
+    chmod -R 777 "$INSTALL_DIR/node_modules" 2>/dev/null || true
+    rm -rf "$INSTALL_DIR/node_modules" 2>/dev/null || true
+
+    # -o 参数强制覆盖不提示
+    unzip -o -q "$ZIP_PATH" -d "$INSTALL_DIR"
     
     # 路径漂移保护 (防止打包问题导致根目录嵌套一层文件夹)
     if [ ! -f "$INSTALL_DIR/package.json" ]; then

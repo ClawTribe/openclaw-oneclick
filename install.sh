@@ -5,7 +5,7 @@
 set -uo pipefail
 
 # --- 基础配置变量 ---
-export VERSION="3.2.3"
+export VERSION="3.2.4"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
