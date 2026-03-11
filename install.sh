@@ -108,6 +108,10 @@ require_bootstrap_tools() {
         fi
     fi
 
+    if command_exists node; then
+        echo -e "   ${GREEN}✓ Node.js $(node -v) 已就绪${NC}"
+    fi
+
     echo -e "   ${GREEN}✓ 当前默认采用中国大陆优先模式${NC}"
     echo -e "   ${GREEN}  OpenClaw 默认版本: ${OPENCLAW_VERSION}${NC}"
     echo -e "   ${GREEN}  npm 默认使用 ${PREFERRED_NPM_REGISTRY}${NC}"
@@ -156,6 +160,24 @@ install_git_if_needed() {
     fi
 
     echo -e "   ${GREEN}✓ Git 安装完成${NC}"
+}
+
+install_node_if_needed() {
+    echo -e "\n${YELLOW}[2.5/6] 检查 Node.js 环境...${NC}"
+    if command_exists node && command_exists npm; then
+        echo -e "   ${GREEN}✓ Node.js/npm 已就绪${NC}"
+        return 0
+    fi
+
+    echo -e "   ${RED}❌ 未检测到 Node.js，无法继续安装${NC}"
+    if command_exists brew; then
+        echo -e "💡 macOS 可执行: ${CYAN}brew install node@22${NC}"
+    elif command_exists apt-get; then
+        echo -e "💡 Debian / Ubuntu 可执行: ${CYAN}curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash - && sudo apt-get install -y nodejs${NC}"
+    else
+        echo -e "💡 请先安装 Node.js v22+ 后重试: https://nodejs.org/"
+    fi
+    exit 1
 }
 
 run_official_installer() {
@@ -272,6 +294,7 @@ install_project_cli() {
 
 require_bootstrap_tools
 install_git_if_needed
+install_node_if_needed
 run_official_installer
 sync_project_code
 install_project_dependencies

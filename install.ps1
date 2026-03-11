@@ -31,6 +31,16 @@ function Test-CommandExists {
     return [bool](Get-Command $Name -ErrorAction SilentlyContinue)
 }
 
+function Update-Environment {
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
+    Write-Host '   ✓ 已刷新系统环境变量' -ForegroundColor Cyan
+}
+
+function Test-IsAdmin {
+    $currentPrincipal = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+    return $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Test-UrlAccess {
     param([string]$Url)
     try {
@@ -47,6 +57,11 @@ function Test-UrlAccess {
 function Invoke-NpmCommand {
     param([string[]]$Arguments)
 
+    if (-not (Test-CommandExists 'npm')) {
+        Write-Host '❌ 未检测到 npm 命令，请确认 Node.js 已正确安装并添加到 PATH。' -ForegroundColor Red
+        return $false
+    }
+
     & npm @Arguments --registry=$PreferredNpmRegistry
     if ($LASTEXITCODE -eq 0) {
         return $true
@@ -59,6 +74,11 @@ function Invoke-NpmCommand {
 
 function Require-BootstrapTools {
     Write-Host "`n[1/6] 检查基础环境..." -ForegroundColor Yellow
+
+    if (-not (Test-IsAdmin)) {
+        Write-Host '   ⚠ 注意: 当前未以管理员权限运行。自动安装组件时可能会弹出权限确认窗口。' -ForegroundColor Yellow
+        Write-Host '   💡 建议退出并右键点击 PowerShell 选择“以管理员身份运行”。' -ForegroundColor Yellow
+    }
 
     if (Test-CommandExists 'powershell' -or $PSVersionTable) {
         Write-Host '   ✓ PowerShell 可用' -ForegroundColor Green
@@ -75,6 +95,11 @@ function Require-BootstrapTools {
         Write-Host '   建议先安装 winget、Chocolatey 或 Scoop，以便自动补齐 Git 等基础工具' -ForegroundColor Yellow
     }
 
+    if (Test-CommandExists 'node') {
+        $nodeVersion = node -v
+        Write-Host "   ✓ Node.js $nodeVersion 已就绪" -ForegroundColor Green
+    }
+
     Write-Host "   ✓ 当前默认采用中国大陆优先模式" -ForegroundColor Green
     Write-Host "   OpenClaw 默认版本: $OpenClawVersion" -ForegroundColor Green
     Write-Host "   npm 默认使用 $PreferredNpmRegistry" -ForegroundColor Green
@@ -88,25 +113,55 @@ function Install-GitIfNeeded {
         return
     }
 
-    Write-Host '   ⚠ 未检测到 Git，开始自动安装...' -ForegroundColor Yellow
+    Write-Host '   ⚠ 未检测到 Git，开始静默安装...' -ForegroundColor Yellow
     if (Test-CommandExists 'winget') {
-        winget install --id Git.Git -e --source winget --accept-package-agreements --accept-source-agreements
+        Write-Host '   正在使用 winget 安装 Git (需管理员权限)...' -ForegroundColor Cyan
+        & winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
     } elseif (Test-CommandExists 'choco') {
-        choco install git -y
+        & choco install git -y
     } elseif (Test-CommandExists 'scoop') {
-        scoop install git
+        & scoop install git
     } else {
         Write-Host '❌ 无法自动安装 Git，请先准备基础环境后重试' -ForegroundColor Red
         Write-Host '💡 Windows 推荐先安装 winget，或手动安装 Git: https://git-scm.com/download/win' -ForegroundColor Yellow
         exit 1
     }
 
+    Update-Environment
     if (-not (Test-CommandExists 'git')) {
-        Write-Host '❌ Git 安装失败' -ForegroundColor Red
+        Write-Host '❌ Git 安装成功但无法在当前会话中识别，请手动添加 Git 到 PATH 或重启终端' -ForegroundColor Red
         exit 1
     }
 
-    Write-Host '   ✓ Git 安装完成' -ForegroundColor Green
+    Write-Host '   ✓ Git 环境已就绪' -ForegroundColor Green
+}
+
+function Install-NodeIfNeeded {
+    Write-Host "`n[2.5/6] 检查 Node.js 环境..." -ForegroundColor Yellow
+    if (Test-CommandExists 'node' -and Test-CommandExists 'npm') {
+        Write-Host '   ✓ Node.js/npm 已就绪' -ForegroundColor Green
+        return
+    }
+
+    Write-Host '   ⚠ 未检测到 Node.js，开始自动安装...' -ForegroundColor Yellow
+    if (Test-CommandExists 'winget') {
+        Write-Host '   正在使用 winget 安装 Node.js (LTS)...' -ForegroundColor Cyan
+        & winget install --id OpenJS.NodeJS.LTS -e --source winget --silent --accept-package-agreements --accept-source-agreements
+    } elseif (Test-CommandExists 'choco') {
+        & choco install nodejs-lts -y
+    } elseif (Test-CommandExists 'scoop') {
+        & scoop install nodejs-lts
+    } else {
+        Write-Host '❌ 无法自动安装 Node.js，请先手动下载安装: https://nodejs.org/' -ForegroundColor Red
+        exit 1
+    }
+
+    Update-Environment
+    if (-not (Test-CommandExists 'node')) {
+        Write-Host '❌ Node.js 安装成功但无法在当前会话中识别，请手动添加 Node 到 PATH 或重启终端' -ForegroundColor Red
+        exit 1
+    }
+    Write-Host '   ✓ Node.js 安装完成' -ForegroundColor Green
 }
 
 function Invoke-OfficialInstaller {
@@ -122,7 +177,9 @@ function Invoke-OfficialInstaller {
 
     Write-Host '   正在卸载现有 OpenClaw 程序代码...' -ForegroundColor Cyan
     # 注: npm uninstall 只会删除软件代码，绝不会触碰用户的 ~/.openclaw 数据文件夹
-    npm uninstall -g openclaw 2>$null | Out-Null
+    if (Test-CommandExists 'npm') {
+        npm uninstall -g openclaw 2>$null | Out-Null
+    }
     
     # 备份整个目录以防止丢失插件、工作区及日志
     Write-Host '   正在备份旧版工作空间与配置...' -ForegroundColor Cyan
@@ -226,6 +283,7 @@ function Install-ProjectCli {
 try {
     Require-BootstrapTools
     Install-GitIfNeeded
+    Install-NodeIfNeeded
     Invoke-OfficialInstaller
     Sync-ProjectCode
     Install-ProjectDependencies
