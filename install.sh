@@ -94,6 +94,25 @@ install_node_if_needed() {
     FAILURE=1 && exit 1
 }
 
+install_from_git_source() {
+    echo -e "\n${YELLOW}[3.5/4] 回退: 正在通过 Git 同步源码 (由于 Release 不可用)...${NC}"
+    local GIT_URL="${PROXY_PREFIX}https://github.com/$REPO_USER/$REPO_NAME.git"
+    
+    if [ -d "$INSTALL_DIR" ]; then
+        rm -rf "${INSTALL_DIR:?}"
+    fi
+    
+    if ! command_exists git; then
+        echo -e "   ${RED}❌ 缺少 git，无法从源码安装。请手动安装 git 后重试。${NC}"
+        FAILURE=1 && exit 1
+    fi
+    
+    git clone "$GIT_URL" "$INSTALL_DIR"
+    cd "$INSTALL_DIR" || exit 1
+    echo -e "   ${YELLOW}正在安装依赖 (可能耗时较长并需要编译)...${NC}"
+    npm install --production --registry="$NPM_REGISTRY"
+}
+
 install_from_release_package() {
     echo -e "\n${YELLOW}[3/4] 下载并解压预编译发行包...${NC}"
     
@@ -119,17 +138,37 @@ install_from_release_package() {
     echo -e "   目标平台: ${OS} (${ARCH})"
     echo -e "   正在从云端拉取: ${PACKAGE_NAME}"
     
-    if curl -L "$DOWNLOAD_URL" -o "$ZIP_PATH"; then
+    if curl -fSL --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH" 2>/dev/null; then
         echo -e "   ${GREEN}✓ 下载完成，正在解压部署...${NC}"
+        
+        if [ -d "$INSTALL_DIR" ]; then
+            echo -e "   清理旧版安装目录..."
+            rm -rf "${INSTALL_DIR:?}"
+        fi
         mkdir -p "$INSTALL_DIR"
-        rm -rf "$INSTALL_DIR/*"
-        unzip -q "$ZIP_PATH" -d "$INSTALL_DIR"
+        
+        unzip -oq "$ZIP_PATH" -d "$INSTALL_DIR"
+        
+        # 智能路径修正：检查是否在子目录中 (与 install.ps1 对齐)
+        if [ ! -f "$INSTALL_DIR/package.json" ]; then
+            local SUB_DIR
+            SUB_DIR=$(find "$INSTALL_DIR" -maxdepth 1 -mindepth 1 -type d | head -n 1)
+            if [ -n "$SUB_DIR" ] && [ -f "$SUB_DIR/package.json" ]; then
+                echo -e "   检测到嵌套目录，正在自动修正路径..."
+                mv "$SUB_DIR"/* "$SUB_DIR"/.??* "$INSTALL_DIR/" 2>/dev/null || true
+                rm -rf "$SUB_DIR"
+            fi
+        fi
+        
         echo -e "   ${GREEN}✓ 已成功部署至 $INSTALL_DIR${NC}"
     else
-        echo -e "   ${RED}❌ 从发行版本下载失败。可能是 Release 未发布或无此架构架构文件。${NC}"
-        echo -e "   ${YELLOW}💡 正在退出，请确保 GitHub Release 已就绪。${NC}"
-        FAILURE=1 && exit 1
+        echo -e "   ${RED}❌ 从发行版本下载失败。可能是 Release 未发布或无此架构文件。${NC}"
+        echo -e "   ${YELLOW}💡 正在尝试回退到 Git 源码模式...${NC}"
+        install_from_git_source
     fi
+    
+    # 清理临时目录
+    [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
 }
 
 install_project_cli() {
