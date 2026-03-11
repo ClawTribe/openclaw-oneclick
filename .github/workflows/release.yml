@@ -9,8 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  build-and-release:
-    name: Build for ${{ matrix.os }} (${{ matrix.arch }})
+  build:
+    name: Build for ${{ matrix.artifact_name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -94,19 +94,15 @@ jobs:
           find ./node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
           
           # 核心瘦身：剔除原生模块中非当前平台的二进制 (koffi, sharp 等)
-          # 我们根据当前构建目标的操作系统，反向删除其他系统的预编译库
           if [[ "${{ matrix.artifact_name }}" == *"Windows"* ]]; then
-              echo "➤ 正在清理非 Windows 架构的原生依赖..."
               find ./node_modules -type d -name "*linux*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*darwin*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
           elif [[ "${{ matrix.artifact_name }}" == *"macOS"* ]]; then
-              echo "➤ 正在清理非 macOS 架构的原生依赖..."
               find ./node_modules -type d -name "*linux*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*win32*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
           elif [[ "${{ matrix.artifact_name }}" == *"Linux"* ]]; then
-              echo "➤ 正在清理非 Linux 架构的原生依赖..."
               find ./node_modules -type d -name "*win32*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*darwin*" -exec rm -rf {} + || true
               find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
@@ -117,29 +113,43 @@ jobs:
         shell: bash
         run: |
           mkdir release_bundle
-          # 将官方核心直接铺在打包根目录
           mv core/* core/.[!.]* release_bundle/ 2>/dev/null || true
-          # 将我们的一键面板放入独立的寄生伴随目录
           mv wrapper release_bundle/openclaw_oneclick
 
-      - name: Create Zip Package (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: pwsh
+      - name: Create Zip Package
+        shell: bash
         run: |
           cd release_bundle
-          $zipName = "OpenClaw-${{ matrix.artifact_name }}.zip"
-          Compress-Archive -Path * -DestinationPath "../$zipName" -CompressionLevel Optimal
+          zip_name="OpenClaw-${{ matrix.artifact_name }}.zip"
+          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+              # 在 Windows Runners 上有时 zip 命令不可用，且 pwsh Compress-Archive 较稳
+              powershell "Compress-Archive -Path * -DestinationPath ../$zip_name"
+          else
+              zip -9 -r "../$zip_name" ./*
+          fi
 
-      - name: Create Zip Package (macOS & Linux)
-        if: matrix.os != 'windows-latest'
-        run: |
-          cd release_bundle
-          zip -9 -r "../OpenClaw-${{ matrix.artifact_name }}.zip" ./*
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: OpenClaw-${{ matrix.artifact_name }}.zip
+          retention-days: 1
 
-      - name: Upload to Release
+  publish:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all_bins
+          merge-multiple: true
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: OpenClaw-${{ matrix.artifact_name }}.zip
+          files: all_bins/OpenClaw-*.zip
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
