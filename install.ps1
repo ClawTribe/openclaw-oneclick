@@ -33,7 +33,9 @@ function Test-CommandExists {
 
 function Update-Environment {
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-    Write-Host '   ✓ 已刷新系统环境变量' -ForegroundColor Cyan
+    # 强制让当前 PowerShell 实例重新扫描可执行文件
+    $env:Path = $env:Path
+    Write-Host '   ✓ 已强制刷新系统环境变量' -ForegroundColor Cyan
 }
 
 function Test-IsAdmin {
@@ -169,16 +171,16 @@ function Invoke-OfficialInstaller {
 
     Write-Host "`n[3/6] 安装 OpenClaw 核心（国内优先模式）..." -ForegroundColor Yellow
 
-    # 在完全切断前，尝试停止可能正在后台运行的网关守护服务
-    if (Test-CommandExists 'openclaw') {
-        Write-Host '   正在停止可能正在运行的 OpenClaw 网关...' -ForegroundColor Cyan
-        & openclaw gateway stop 2>$null | Out-Null
-    }
+    Update-Environment
 
     Write-Host '   正在卸载现有 OpenClaw 程序代码...' -ForegroundColor Cyan
     # 注: npm uninstall 只会删除软件代码，绝不会触碰用户的 ~/.openclaw 数据文件夹
     if (Test-CommandExists 'npm') {
-        npm uninstall -g openclaw 2>$null | Out-Null
+        try {
+            npm uninstall -g openclaw 2>$null | Out-Null
+        } catch {
+            Write-Host '   ⚠ 卸载旧版失败（可能无权限或已手动删除），跳过...' -ForegroundColor Gray
+        }
     }
     
     # 备份整个目录以防止丢失插件、工作区及日志
@@ -204,6 +206,14 @@ function Invoke-OfficialInstaller {
             Write-Host '❌ 官方安装器下载失败，请检查网络后重试' -ForegroundColor Red
             exit 1
         }
+    }
+
+    # 【关键修复】对官方安装器进行热补丁，防止因为 NPM 输出到 Stderr 而导致 PowerShell NativeCommandError 崩溃
+    if (Test-Path $installerFile) {
+        $content = Get-Content $installerFile
+        $newContent = $content -replace "\$ErrorActionPreference = 'Stop'", "`$ErrorActionPreference = 'Continue'"
+        $newContent | Set-Content $installerFile
+        Write-Host '   ✓ 已应用脚本兼容性补丁' -ForegroundColor Gray
     }
 
     $env:npm_config_registry = $PreferredNpmRegistry
