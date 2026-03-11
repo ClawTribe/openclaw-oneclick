@@ -88,9 +88,29 @@ jobs:
         shell: bash
         run: |
           cd core
+          # 移除通用非代码文件
           rm -rf .git .github .gitignore README.md LICENSE package-lock.json
           find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" \) -exec rm -rf {} + || true
           find ./node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
+          
+          # 核心瘦身：剔除原生模块中非当前平台的二进制 (koffi, sharp 等)
+          # 我们根据当前构建目标的操作系统，反向删除其他系统的预编译库
+          if [[ "${{ matrix.artifact_name }}" == *"Windows"* ]]; then
+              echo "➤ 正在清理非 Windows 架构的原生依赖..."
+              find ./node_modules -type d -name "*linux*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*darwin*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
+          elif [[ "${{ matrix.artifact_name }}" == *"macOS"* ]]; then
+              echo "➤ 正在清理非 macOS 架构的原生依赖..."
+              find ./node_modules -type d -name "*linux*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*win32*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
+          elif [[ "${{ matrix.artifact_name }}" == *"Linux"* ]]; then
+              echo "➤ 正在清理非 Linux 架构的原生依赖..."
+              find ./node_modules -type d -name "*win32*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*darwin*" -exec rm -rf {} + || true
+              find ./node_modules -type d -name "*android*" -exec rm -rf {} + || true
+          fi
           cd ..
           
       - name: Assemble Release Bundle

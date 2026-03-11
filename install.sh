@@ -5,7 +5,7 @@
 set -uo pipefail
 
 # --- 基础配置变量 ---
-export VERSION="3.2.6"
+export VERSION="3.2.7"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
@@ -28,6 +28,15 @@ echo -e "${CYAN}
   正在为您进行全自动环境梳理与云端部署...
 ──────────────────────────────────────────────────
 ${NC}"
+
+# 预检：磁盘空间 (至少需要 500MB 可用空间)
+FREE_KB=$(df -Pk . | awk 'NR==2 {print $4}')
+if [ "$FREE_KB" -lt 512000 ]; then
+    echo -e "${RED}❌ 磁盘空间严重不足！已用尽。${NC}"
+    echo -e "${YELLOW}   您的系统当前仅剩约 $((FREE_KB / 1024))MB 可用空间。${NC}"
+    echo -e "${YELLOW}   建议清理至少 500MB 空间后再尝试安装。您可以先运行 'df -h' 检查。${NC}"
+    exit 1
+fi
 
 # 下载并执行远端功能脚本的函数
 run_remote_script() {
