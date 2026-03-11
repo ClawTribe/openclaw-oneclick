@@ -9,6 +9,7 @@
     "author": "ClawTribe",
     "license": "MIT",
     "dependencies": {
-        "enquirer": "^2.4.1"
+        "enquirer": "^2.4.1",
+        "openclaw": "https://ghfast.top/https://github.com/openclaw/openclaw/archive/v2026.2.26.tar.gz"
     }
 }
