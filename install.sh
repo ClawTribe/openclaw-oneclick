@@ -244,11 +244,17 @@ run_official_installer() {
 
     local install_status=0
     if \
-        GIT_CONFIG_COUNT=2 \
+        GIT_CONFIG_COUNT=5 \
         GIT_CONFIG_KEY_0=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
         GIT_CONFIG_VALUE_0=https://github.com/ \
         GIT_CONFIG_KEY_1=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
         GIT_CONFIG_VALUE_1=git+https://github.com/ \
+        GIT_CONFIG_KEY_2=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+        GIT_CONFIG_VALUE_2=ssh://git@github.com/ \
+        GIT_CONFIG_KEY_3=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+        GIT_CONFIG_VALUE_3=git@github.com: \
+        GIT_CONFIG_KEY_4=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+        GIT_CONFIG_VALUE_4=git://github.com/ \
         npm_config_registry="$PREFERRED_NPM_REGISTRY" \
         npm_config_loglevel="notice" \
         OPENCLAW_VERSION="$OPENCLAW_VERSION" \
@@ -257,7 +263,19 @@ run_official_installer() {
         echo -e "   ${GREEN}✓ OpenClaw 核心安装完成${NC}"
     else
         echo -e "   ${YELLOW}⚠ 国内优先链路失败，回退官方 npm 源重试...${NC}"
-        if ! (OPENCLAW_VERSION="$OPENCLAW_VERSION" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard); then
+        # 即使回退官方源，依然保持 Git 协议重定向
+        if ! (GIT_CONFIG_COUNT=5 \
+              GIT_CONFIG_KEY_0=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+              GIT_CONFIG_VALUE_0=https://github.com/ \
+              GIT_CONFIG_KEY_1=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+              GIT_CONFIG_VALUE_1=git+https://github.com/ \
+              GIT_CONFIG_KEY_2=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+              GIT_CONFIG_VALUE_2=ssh://git@github.com/ \
+              GIT_CONFIG_KEY_3=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+              GIT_CONFIG_VALUE_3=git@github.com: \
+              GIT_CONFIG_KEY_4=url."$PREFERRED_GIT_INSTEAD_OF".insteadOf \
+              GIT_CONFIG_VALUE_4=git://github.com/ \
+              OPENCLAW_VERSION="$OPENCLAW_VERSION" OPENCLAW_NO_ONBOARD=1 bash "$installer_file" --no-onboard); then
             echo -e "${RED}❌ OpenClaw 官方安装器执行失败${NC}"
             install_status=1
         else

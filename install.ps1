@@ -226,11 +226,17 @@ function Invoke-OfficialInstaller {
 
     $env:npm_config_registry = $PreferredNpmRegistry
     $env:OPENCLAW_VERSION = $OpenClawVersion
-    $env:GIT_CONFIG_COUNT = '2'
+    $env:GIT_CONFIG_COUNT = '5'
     $env:GIT_CONFIG_KEY_0 = "url.$PreferredGitInsteadOf.insteadOf"
     $env:GIT_CONFIG_VALUE_0 = 'https://github.com/'
     $env:GIT_CONFIG_KEY_1 = "url.$PreferredGitInsteadOf.insteadOf"
     $env:GIT_CONFIG_VALUE_1 = 'git+https://github.com/'
+    $env:GIT_CONFIG_KEY_2 = "url.$PreferredGitInsteadOf.insteadOf"
+    $env:GIT_CONFIG_VALUE_2 = 'ssh://git@github.com/'
+    $env:GIT_CONFIG_KEY_3 = "url.$PreferredGitInsteadOf.insteadOf"
+    $env:GIT_CONFIG_VALUE_3 = 'git@github.com:'
+    $env:GIT_CONFIG_KEY_4 = "url.$PreferredGitInsteadOf.insteadOf"
+    $env:GIT_CONFIG_VALUE_4 = 'git://github.com/'
     
     # 显式使用环境变量提升兼容性
     powershell -ExecutionPolicy Bypass -File $installerFile
@@ -241,7 +247,7 @@ function Invoke-OfficialInstaller {
 
     Write-Host '   ⚠ 国内优先链路失败，回退官方 npm 源重试...' -ForegroundColor Yellow
     $env:npm_config_registry = $OfficialNpmRegistry
-    Remove-Item Env:GIT_CONFIG_COUNT, Env:GIT_CONFIG_KEY_0, Env:GIT_CONFIG_VALUE_0, Env:GIT_CONFIG_KEY_1, Env:GIT_CONFIG_VALUE_1 -ErrorAction SilentlyContinue
+    # 保持 Git 协议重定向，即使回退 NPM 源（因为依赖可能还是在 GitHub）
     $env:OPENCLAW_VERSION = $OpenClawVersion
     powershell -ExecutionPolicy Bypass -File $installerFile
     if ($LASTEXITCODE -ne 0) {
