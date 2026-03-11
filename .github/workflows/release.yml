@@ -27,48 +27,68 @@ jobs:
             artifact_name: macOS-arm64
 
     steps:
-      - name: Checkout Code
+      - name: Checkout One-Click Wrapper
         uses: actions/checkout@v4
+        with:
+          path: wrapper
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Download & Extract Official OpenClaw Core
+        shell: bash
+        run: |
+          mkdir core
+          curl -L "https://github.com/openclaw/openclaw/archive/v2026.2.26.tar.gz" | tar -xz -C core --strip-components=1
+          
+      - name: Integration (Merge Wrapper into Core)
+        shell: bash
+        run: |
+          # 将一键管理控制台的代码注入到核心包中
+          cp -r wrapper/src core/console_src
+          cp wrapper/package.json core/package_oneclick.json
+          
+          # 更新核心包的 package.json，让它能同时导出 openclaw-setup
+          cd core
+          node -e '
+            const pkg = require("./package.json");
+            const wrapperPkg = require("./package_oneclick.json");
+            pkg.bin = { ...pkg.bin, "openclaw-setup": "./console_src/index.js" };
+            const fs = require("fs");
+            fs.writeFileSync("./package.json", JSON.stringify(pkg, null, 2));
+          '
+
       - name: Install Dependencies
-        run: npm install --production
+        run: |
+          cd core
+          npm install --production
         env:
           NPM_CONFIG_NODE_LLAMA_CPP_SKIP_BUILD: false
 
       - name: Aggressive Pruning (Cleanup)
         shell: bash
         run: |
-          # 核心代码与依赖清理
-          rm -rf .git .github .gitignore README.md LICENSE package-lock.json
-          
-          # 深度清理 node_modules 中的非运行必要文件 (docs, tests, samples 等)
-          echo "Starting aggressive pruning of node_modules..."
-          find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" -o -name ".circleci" \) -exec rm -rf {} + || true
-          find ./node_modules -type f \( -name "*.md" -o -name "*.ts" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" -o -name "Makefile" -o -name "binding.sln" -o -name "*.vcxproj*" \) -delete || true
-          
-          # 清理 node-llama-cpp 等编译残留
-          find ./node_modules -name "build" -type d -exec find {} -name "*.o" -delete \; || true
-          
-          echo "Pruning complete."
+          cd core
+          # 清理不必要文件，减小体积
+          rm -rf .git .github .gitignore README.md LICENSE package-lock.json package_oneclick.json
+          find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" \) -exec rm -rf {} + || true
+          find ./node_modules -type f \( -name "*.md" -o -name "*.ts" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
 
       - name: Create Zip Package (Windows)
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
+          cd core
           $zipName = "OpenClaw-${{ matrix.artifact_name }}.zip"
-          # 使用更可靠的文件获取方式
-          $items = Get-ChildItem -Path . -Exclude $zipName
-          Compress-Archive -Path $items -DestinationPath $zipName -CompressionLevel Optimal
+          Compress-Archive -Path * -DestinationPath "../$zipName" -CompressionLevel Optimal
 
       - name: Create Zip Package (macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          zip -9 -r "OpenClaw-${{ matrix.artifact_name }}.zip" ./* -x "OpenClaw-*.zip"
+          cd core
+          zip -9 -r "../OpenClaw-${{ matrix.artifact_name }}.zip" ./*
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2
