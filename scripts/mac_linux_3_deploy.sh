@@ -3,6 +3,8 @@ set -e
 
 echo -e "\n${YELLOW}[3/3] 正在拉取 OpenClaw 一键集成包并注册全局...${NC}"
 
+command_exists() { command -v "$1" >/dev/null 2>&1; }
+
 OS_NAME=$(uname -s)
 ARCH=$(uname -m)
 
