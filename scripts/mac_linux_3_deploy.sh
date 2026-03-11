@@ -21,8 +21,13 @@ echo -e "   正在从云端拉取 (带断点续传加速): ${PACKAGE_NAME}"
 if curl -fSL --progress-bar --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH" 2>/dev/null; then
     echo -e "   ${GREEN}✓ 下载完成，正在解压与清洗目录...${NC}"
     
-    if [ -d "$INSTALL_DIR" ]; then rm -rf "${INSTALL_DIR:?}"; fi
-    mkdir -p "$INSTALL_DIR"
+    if [ ! -d "$INSTALL_DIR" ]; then 
+        mkdir -p "$INSTALL_DIR"
+    else
+        echo -e "   ${YELLOW}⚠ 发现已有的部署目录，正在覆盖核心文件以防破坏用户配置...${NC}"
+        # 安全清理：只删除旧的核心工作文件，千万不要删除用户可能存放在此目录的本地数据库或配置文件
+        rm -rf "$INSTALL_DIR/node_modules" "$INSTALL_DIR/dist" "$INSTALL_DIR/package.json" 2>/dev/null || true
+    fi
     
     # -o 覆盖静默解压
     unzip -oq "$ZIP_PATH" -d "$INSTALL_DIR"

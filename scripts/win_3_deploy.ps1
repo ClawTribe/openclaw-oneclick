@@ -19,10 +19,14 @@ try {
     Write-Color "   ✓ 下载回传完毕，正在将代码覆盖工作区..." "Green"
     
     if (Test-Path $global:InstallDir) {
-        Write-Color "   ⚠ 清理宿主机旧版本遗留环境" "Gray"
-        Remove-Item -Path $global:InstallDir -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Color "   ⚠ 发现已有的部署目录，正在覆盖核心文件以防破坏用户配置..." "Gray"
+        # 安全清理：只删除旧的核心工作文件，千万不要删除整个文件夹
+        Remove-Item -Path (Join-Path $global:InstallDir "node_modules") -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path (Join-Path $global:InstallDir "dist") -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path (Join-Path $global:InstallDir "package.json") -Force -ErrorAction SilentlyContinue
+    } else {
+        New-Item -ItemType Directory -Path $global:InstallDir -Force | Out-Null
     }
-    New-Item -ItemType Directory -Path $global:InstallDir -Force | Out-Null
     
     Expand-Archive -Path $ZipPath -DestinationPath $global:InstallDir -Force
     
