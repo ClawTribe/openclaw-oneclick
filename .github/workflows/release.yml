@@ -3,7 +3,10 @@ name: Multi-Platform Build & Release
 on:
   push:
     tags:
-      - 'v*' # 当你推送以 v 开头的标签（如 v3.1.0）时触发
+      - 'v*'
+
+permissions:
+  contents: write
 
 jobs:
   build-and-release:
