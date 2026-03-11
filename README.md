@@ -2,7 +2,7 @@
 
 > **OpenClaw 一键部署 + 全中文配置管理**
 
-[![Version](https://img.shields.io/badge/Version-3.1.0-blue.svg)](https://github.com/ClawTribe/openclaw-oneclick)
+[![Version](https://img.shields.io/badge/Version-3.2.0-blue.svg)](https://github.com/ClawTribe/openclaw-oneclick)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 专为 [OpenClaw](https://openclaw.ai) 设计的中文配置管理工具，通过直观的交互式菜单管理 AI 助手的所有配置。
@@ -21,31 +21,35 @@
 
 ---
 
-## 快速安装
+## 🚀 快速安装
 
-### macOS / Linux
-
-```bash
-    curl -sSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
-```
-
-安装脚本会优先调用 OpenClaw 官方安装器完成核心安装；如果在中国大陆网络环境下遇到 npm 或 GitHub 访问问题，会自动尝试当前安装进程内的 fallback，不会主动改写你的全局 npm 配置。
-
-当前安装策略为中国大陆优先：默认先使用国内 npm 镜像与 GitHub 代理；如果安装过程中遇到 [`git+https://github.com/...`](README.md:31) 这类 Git 依赖，也会在当前进程里临时注入 GitHub 代理映射，再在必要时回退官方源。
-
-**支持覆盖安装**：如果已安装 OpenClaw，脚本会自动先卸载现有版本，**备份配置文件**（`~/.openclaw/openclaw.json` → `~/openclaw.MMDDHHmm.bak`），然后清理配置目录。这可以避免不同版本之间的配置兼容性问题，同时保留你的配置以便恢复。备份文件保存在用户主目录下，不会被清理。
-
-### Windows (PowerShell 管理员)
-
+### Windows (推荐)
+**请右键点击“开始”，选择“终端管理员”或“PowerShell 管理员”**，然后运行：
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
 ```
 
-Windows 脚本与 macOS / Linux 版本保持同一安装职责：先检查基础环境，再优先调用 OpenClaw 官方安装器，最后安装并注册 [`openclaw-setup`](package.json:6)。
+### macOS / Linux
+在终端中运行：
+```bash
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
+```
 
-Windows 版本同样采用中国大陆优先策略：默认先使用国内 npm 镜像、GitHub 代理与临时 Git URL 映射，失败时再回退官方链路。
+---
 
-**支持覆盖安装**：如果已安装 OpenClaw，脚本会自动先卸载现有版本，**备份配置文件**（`~/.openclaw/openclaw.json` → `~/openclaw.MMDDHHmm.bak`），然后清理配置目录。这可以避免不同版本之间的配置兼容性问题，同时保留你的配置以便恢复。备份文件保存在用户主目录下，不会被清理。
+## ❓ 常见问题 (FAQ)
+
+### 1. 运行 `openclaw-setup` 报错“在此系统上禁止运行脚本”?
+**原因**：Windows 默认策略限制了脚本执行，导致无法加载 `openclaw-setup.ps1` 包装器。  
+**解决**：在“管理员 PowerShell”窗口运行以下命令即可：
+```powershell
+Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+```
+
+### 2. 下载速度慢或超时?
+项目已内置 `ghfast.top` 高速镜像。如果依然遇到连接超时，请尝试：
+- 确认网络能访问 [ghfast.top](https://ghfast.top)
+- 检查本地是否配置了冲突的 NPM 代理（`npm config get proxy`）
 
 ### 指定 OpenClaw 版本
 

@@ -109,6 +109,13 @@ function Install-FromGitSource {
 
 function Install-ProjectCli {
     Write-Host "`n[4/4] 注册系统全局命令..." -ForegroundColor Yellow
+    
+    # 自动解决 Windows 脚本执行策略问题（解决新手常见报错）
+    if ((Get-ExecutionPolicy) -eq 'Restricted') {
+        Write-Host "   检测到系统禁用脚本运行，正在为您自动授权..." -ForegroundColor Gray
+        Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    }
+    
     Set-Location $InstallDir
     & npm install -g . --registry=https://registry.npmmirror.com
     if ($LASTEXITCODE -eq 0) {
