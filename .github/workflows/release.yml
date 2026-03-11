@@ -53,22 +53,37 @@ jobs:
           cp -r wrapper/src core/console_src
           cp wrapper/package.json core/package_oneclick.json
           
-          # 更新核心包的 package.json，让它能同时导出 openclaw-setup
+          # 更新核心包的 package.json:
+          #   1. 添加 openclaw-setup 的 bin 入口
+          #   2. 注入 wrapper 的 enquirer 依赖（openclaw-setup 运行时需要）
           cd core
           node -e '
             const pkg = require("./package.json");
             const wrapperPkg = require("./package_oneclick.json");
             pkg.bin = { ...pkg.bin, "openclaw-setup": "./console_src/index.js" };
+            pkg.dependencies = { ...pkg.dependencies, ...wrapperPkg.dependencies };
             const fs = require("fs");
             fs.writeFileSync("./package.json", JSON.stringify(pkg, null, 2));
           '
 
-      - name: Install Dependencies
+      - name: Install Dependencies (Full - includes dev tools for build)
         run: |
           cd core
-          npm install --production
+          npm install
         env:
           NPM_CONFIG_NODE_LLAMA_CPP_SKIP_BUILD: false
+
+      - name: Build Core (Compile TypeScript → dist/)
+        shell: bash
+        run: |
+          cd core
+          npm run build
+
+      - name: Prune Dev Dependencies
+        shell: bash
+        run: |
+          cd core
+          npm prune --production
 
       - name: Aggressive Pruning (Cleanup)
         shell: bash
@@ -77,7 +92,7 @@ jobs:
           # 清理不必要文件，减小体积
           rm -rf .git .github .gitignore README.md LICENSE package-lock.json package_oneclick.json
           find ./node_modules -type d \( -name "test" -o -name "tests" -o -name "docs" -o -name "samples" -o -name "examples" -o -name ".github" -o -name ".vscode" \) -exec rm -rf {} + || true
-          find ./node_modules -type f \( -name "*.md" -o -name "*.ts" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
+          find ./node_modules -type f \( -name "*.md" -o -name "*.map" -o -name "*.obj" -o -name "*.pdb" -o -name "*.o" \) -delete || true
 
       - name: Create Zip Package (Windows)
         if: matrix.os == 'windows-latest'
