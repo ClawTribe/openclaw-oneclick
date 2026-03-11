@@ -7,8 +7,11 @@ command_exists() { command -v "$1" >/dev/null 2>&1; }
 OS="$(uname -s)"
 ARCH="$(uname -m)"
 
-if ! command_exists node || ! [[ $(node -v) == v22* ]]; then
-    echo -e "   ${YELLOW}⚠ 未找到 Node.js v22，准备从淘宝镜像全静默安装...${NC}"
+NODE_VERSION_STR=$(node -v 2>/dev/null || echo "v0")
+NODE_MAJOR=$(echo "$NODE_VERSION_STR" | sed 's/v//' | cut -d. -f1)
+
+if ! command_exists node || [ -z "$NODE_MAJOR" ] || [ "$NODE_MAJOR" -lt 22 ]; then
+    echo -e "   ${YELLOW}⚠ 未找到支持的 Node.js 引擎 (需要 v22+)，准备从淘宝镜像全静默安装...${NC}"
     TMP_DIR=$(mktemp -d)
     
     if [ "$OS" = "Darwin" ]; then

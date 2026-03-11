@@ -8,12 +8,14 @@ $tempDir = [System.IO.Path]::GetTempPath()
 function Check-NodeVersion {
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }
     $ver = node -v
-    if ($ver -like "v22.*") { return $true }
+    if ($ver -match "^v(\d+)\.") {
+        if ([int]$matches[1] -ge 22) { return $true }
+    }
     return $false
 }
 
 if (-not (Check-NodeVersion)) {
-    Write-Color "   ⚠ 缺失推荐引擎 Node.js v22，准备热安装..." "Cyan"
+    Write-Color "   ⚠ 缺失推荐引擎或者当前 Node.js 版本低于 v22，准备进行热更新安装..." "Cyan"
     $nodeInstaller = Join-Path $tempDir "Node-Installer.msi"
     
     $nodeUrl = "https://npmmirror.com/mirrors/node/v$global:NodeVersion/node-v$global:NodeVersion-x64.msi"

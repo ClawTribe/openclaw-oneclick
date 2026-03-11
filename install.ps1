@@ -34,8 +34,11 @@ function Run-RemoteScript {
     Write-Color "➤ 正在拉取流程套件: $ScriptName ..." "Gray"
     
     try {
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + ".ps1")
-        Invoke-WebRequest -Uri $ScriptUrl -OutFile $tempScript -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+        # 强制将下载的源文件保存为带 BOM 的 UTF-8（解决 Win10 PS5.1 下中文字符串截断与乱码报错的问题）
+        [System.IO.File]::WriteAllText($tempScript, $resp.Content, [System.Text.Encoding]::UTF8)
     } catch {
         # 降级尝试本地查找（为了开发人员本地测试和极低网速下的备用方案）
         $localPath = Join-Path $PWD "scripts\$ScriptName"
