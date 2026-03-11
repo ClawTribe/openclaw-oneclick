@@ -31,11 +31,11 @@ try {
         Invoke-WebRequest -Uri $DownloadUrl -OutFile $ZipPath -UseBasicParsing -TimeoutSec 300
         $ProgressPreference = 'Continue'
     }
-    Write-Color "   ✓ 下载回传完毕，正在将代码覆盖工作区..." "Green"
+    Write-Color "   ✓ 下载回传完毕，正在准备安装环境..." "Green"
     
     if (Test-Path $global:InstallDir) {
-        Write-Color "   ⚠ 发现已有的部署目录，正在覆盖核心文件以防破坏用户配置..." "Gray"
-        # 安全清理：只删除旧的核心工作文件，千万不要删除整个文件夹
+        Write-Color "   ➤ 正在深度清理工作区 (防止新旧代码冲突，可能需要 1-2 分钟)..." "Gray"
+        # 强制清除旧核心文件
         Remove-Item -Path (Join-Path $global:InstallDir "node_modules") -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $global:InstallDir "dist") -Recurse -Force -ErrorAction SilentlyContinue
         Remove-Item -Path (Join-Path $global:InstallDir "package.json") -Force -ErrorAction SilentlyContinue
@@ -43,23 +43,30 @@ try {
         New-Item -ItemType Directory -Path $global:InstallDir -Force | Out-Null
     }
     
-    Expand-Archive -Path $ZipPath -DestinationPath $global:InstallDir -Force
+    Write-Color "   ➤ 开始解压本地分发包到目标目录..." "Gray"
+    if (Get-Command tar.exe -ErrorAction SilentlyContinue) {
+        # 现代 Windows 使用 tar.exe 解压速度快 10 倍且不阻塞
+        $p = Start-Process -FilePath "tar.exe" -ArgumentList "-xf", "`"$ZipPath`"", "-C", "`"$global:InstallDir`"" -Wait -NoNewWindow -PassThru
+        if ($p.ExitCode -ne 0) { throw "解压核心包失败" }
+    } else {
+        Expand-Archive -Path $ZipPath -DestinationPath $global:InstallDir -Force
+    }
     
-    # 嵌套修正
+    # 嵌套修正 (有些解压工具会多包一层路径)
     if (-not (Test-Path (Join-Path $global:InstallDir "package.json"))) {
         $subDir = Get-ChildItem -Path $global:InstallDir -Directory | Select-Object -First 1
         if ($subDir -and (Test-Path (Join-Path $subDir.FullName "package.json"))) {
-            Write-Color "   ➤ 漂移隔离修复: 检测到层级嵌套，正在还原结构..." "Gray"
+            Write-Color "   ➤ 漂移隔离修复: 正在还原代码层级结构..." "Gray"
             Get-ChildItem -Path $subDir.FullName | Move-Item -Destination $global:InstallDir -Force
-            Remove-Item -Path $subDir.FullName -Recurse -Force
+            Remove-Item -Path $subDir.FullName -Recurse -Force -ErrorAction SilentlyContinue
         }
     }
     
-    Write-Color "   ✓ 节点已部署至: $global:InstallDir" "Green"
+    Write-Color "   ✓ 核心应用代码已完整装载至: $global:InstallDir" "Green"
 } catch {
-    Write-Color "❌ 安装分发包获取失败。" "Red"
-    Write-Color "   连接地址: $DownloadUrl" "Red"
+    Write-Color "`n❌ 部署核心包到磁盘时发生中断。" "Red"
     Write-Color "   原因: $_" "Red"
+    Write-Color "   如果是由于文件被占用，请先关闭正在运行的 OpenClaw 后重试。" "Yellow"
     exit 1
 }
 
