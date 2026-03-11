@@ -1,184 +1,71 @@
 #!/usr/bin/env bash
-# OpenClaw One-Click macOS/Linux Downloader (v3.2.0)
-# Designed for ClawTribe/openclaw-oneclick
+# OpenClaw macOS/Linux 一键安装入口脚本 (v4.0.0)
+# 中国大陆深度优化版本，支持全自动拆解安装流程
 
 set -uo pipefail
 
-# 变量设置
-VERSION="3.2.2"
-REPO_USER="ClawTribe"
-REPO_NAME="openclaw-oneclick"
-INSTALL_DIR="$HOME/OpenClaw"
-PROXY_PREFIX="https://ghfast.top/"
-RELEASE_BASE_URL="${PROXY_PREFIX}https://github.com/$REPO_USER/$REPO_NAME/releases/download/v$VERSION"
-NPM_REGISTRY="https://registry.npmmirror.com"
+# --- 基础配置变量 ---
+export VERSION="3.2.2"
+export REPO_USER="ClawTribe"
+export REPO_NAME="openclaw-oneclick"
+export INSTALL_DIR="$HOME/OpenClaw"
+export PROXY_PREFIX="https://ghfast.top/"
+export RELEASE_BASE_URL="${PROXY_PREFIX}https://github.com/$REPO_USER/$REPO_NAME/releases/download/v$VERSION"
+export NODE_VERSION="22.14.0"
+export NPM_REGISTRY="https://registry.npmmirror.com"
+export RAW_BASE_URL="${PROXY_PREFIX}https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/main/scripts"
 
-# 追踪状态
-FAILURE=0
-
-# UI 助手
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-NC='\033[0m'
+# UI
+export RED='\033[0;31m'
+export GREEN='\033[0;32m'
+export YELLOW='\033[1;33m'
+export CYAN='\033[0;36m'
+export NC='\033[0m'
 
 echo -e "${CYAN}
 ──────────────────────────────────────────────────
-  OpenClaw 官方分发下载器 (macOS / Linux)
-  版本: v${VERSION} | 作者: ClawTribe
+  🚀 OpenClaw 环境管家 (macOS / Linux)
+  正在为您进行全自动环境梳理与云端部署...
 ──────────────────────────────────────────────────
 ${NC}"
 
-command_exists() {
-    command -v "$1" >/dev/null 2>&1
-}
-
-pause_on_exit() {
-    if [ $FAILURE -ne 0 ]; then
-        echo -e "\n${YELLOW}──────────────────────────────────────────────────${NC}"
-        echo -e "${YELLOW}⚠ 部署过程中遇到了一些问题，请检查上方的错误提示。${NC}"
-        echo -e "${CYAN}请按 [回车键] 退出...${NC}"
-        read -r
-    fi
-}
-
-trap pause_on_exit EXIT
-
-require_bootstrap_tools() {
-    echo -e "\n${YELLOW}[1/4] 检查基础环境...${NC}"
+# 下载并执行远端功能脚本的函数
+run_remote_script() {
+    local script_name=$1
+    local script_url="${RAW_BASE_URL}/${script_name}"
+    local tmp_script=$(mktemp)
     
-    # 检查 curl
-    if ! command_exists curl; then
-        echo -e "${RED}❌ 缺少 curl，请先安装。${NC}"
-        FAILURE=1 && exit 1
-    fi
-    echo -e "   ${GREEN}✓ curl 工具就绪${NC}"
-
-    # 检查 unzip
-    if ! command_exists unzip; then
-        echo -e "   ${YELLOW}⚠ 缺少 unzip 解压工具，正在尝试自动获取...${NC}"
-        if command_exists apt-get; then
-            sudo apt-get update && sudo apt-get install -y unzip
-        elif command_exists yum; then
-            sudo yum install -y unzip
-        elif command_exists dnf; then
-            sudo dnf install -y unzip
-        elif command_exists brew; then
-            brew install unzip
-        fi
-
-        if ! command_exists unzip; then
-            echo -e "${RED}❌ 无法自动安装 unzip，请手动安装后重试。${NC}"
-            echo -e "   💡 Debian/Ubuntu: ${CYAN}sudo apt install unzip${NC}"
-            echo -e "   💡 CentOS/Fedora: ${CYAN}sudo yum install unzip${NC}"
-            FAILURE=1 && exit 1
+    echo -e "➤ 正在拉取流程套件: ${script_name} ..."
+    if ! curl -fsSL --connect-timeout 10 --max-time 30 "$script_url" -o "$tmp_script"; then
+        # 降级备用拉取：如果远程未提供，尝试在本地寻找同名文件（便于开发者本地测试）
+        if [ -f "./scripts/$script_name" ]; then
+            cp "./scripts/$script_name" "$tmp_script"
+        else
+            echo -e "${RED}❌ 无法获取依赖流程文件 ${script_name}，请检查网络。${NC}"
+            rm -f "$tmp_script"
+            exit 1
         fi
     fi
-    echo -e "   ${GREEN}✓ unzip 工具就绪${NC}"
+    
+    chmod +x "$tmp_script"
+    if ! bash "$tmp_script"; then
+        echo -e "${RED}❌ 流程 ${script_name} 异常中断。${NC}"
+        rm -f "$tmp_script"
+        exit 1
+    fi
+    rm -f "$tmp_script"
 }
 
-install_node_if_needed() {
-    echo -e "\n${YELLOW}[2/4] 检查 Node.js 环境...${NC}"
-    if command_exists node && command_exists npm; then
-        echo -e "   ${GREEN}✓ Node.js $(node -v) 已就绪${NC}"
-        return 0
-    fi
+# 流程 1: 基础命令工具 (CURL, UNZIP, GIT) 的检查或安装
+run_remote_script "mac_linux_1_bases.sh"
 
-    echo -e "   ${YELLOW}⚠ 未检测到 Node.js，请执行以下命令进行安装：${NC}"
-    if command_exists brew; then
-        echo -e "   💡 可运行: ${CYAN}brew install node@22${NC}"
-    else
-        echo -e "   💡 可参考: https://nodejs.org/en/download/"
-    fi
-    FAILURE=1 && exit 1
-}
+# 流程 2: Node.js 环境及 NPM 镜像池的静默配置
+run_remote_script "mac_linux_2_node.sh"
 
-install_from_release_package() {
-    echo -e "\n${YELLOW}[3/4] 下载并解压预编译发行包...${NC}"
-    
-    # 获取系统和架构
-    OS_NAME=$(uname -s)
-    ARCH=$(uname -m)
-    
-    if [[ "$OS_NAME" == "Darwin" ]]; then
-        OS="macOS"
-    else
-        OS="Linux"
-    fi
-    
-    # 重命名架构
-    if [[ "$ARCH" == "x86_64" ]]; then ARCH="x64"; fi
-    if [[ "$ARCH" == "aarch64" ]]; then ARCH="arm64"; fi
-    
-    PACKAGE_NAME="OpenClaw-${OS}-${ARCH}.zip"
-    DOWNLOAD_URL="${RELEASE_BASE_URL}/${PACKAGE_NAME}"
-    TMP_DIR=$(mktemp -d)
-    ZIP_PATH="${TMP_DIR}/${PACKAGE_NAME}"
-    
-    echo -e "   目标平台: ${OS} (${ARCH})"
-    echo -e "   正在从云端拉取: ${PACKAGE_NAME}"
-    
-    if curl -fSL --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH" 2>/dev/null; then
-        echo -e "   ${GREEN}✓ 下载完成，正在解压部署...${NC}"
-        
-        if [ -d "$INSTALL_DIR" ]; then
-            echo -e "   清理旧版安装目录..."
-            rm -rf "${INSTALL_DIR:?}"
-        fi
-        mkdir -p "$INSTALL_DIR"
-        
-        unzip -oq "$ZIP_PATH" -d "$INSTALL_DIR"
-        
-        # 智能路径修正：检查是否在子目录中 (与 install.ps1 对齐)
-        if [ ! -f "$INSTALL_DIR/package.json" ]; then
-            local SUB_DIR
-            SUB_DIR=$(find "$INSTALL_DIR" -maxdepth 1 -mindepth 1 -type d | head -n 1)
-            if [ -n "$SUB_DIR" ] && [ -f "$SUB_DIR/package.json" ]; then
-                echo -e "   检测到嵌套目录，正在自动修正路径..."
-                mv "$SUB_DIR"/* "$SUB_DIR"/.??* "$INSTALL_DIR/" 2>/dev/null || true
-                rm -rf "$SUB_DIR"
-            fi
-        fi
-        
-        echo -e "   ${GREEN}✓ 已成功部署至 $INSTALL_DIR${NC}"
-    else
-        echo -e "   ${RED}❌ 无法从 Release 页面下载预编译包。${NC}"
-        echo ""
-        echo -e "   ${YELLOW}可能的原因:${NC}"
-        echo -e "   ${CYAN}  1. 该版本的 Release 尚未发布或正在构建中${NC}"
-        echo -e "   ${CYAN}  2. 网络代理 (ghfast.top) 暂时不可用${NC}"
-        echo -e "   ${CYAN}  3. 当前架构 (${OS}-${ARCH}) 无对应的构建产物${NC}"
-        echo ""
-        echo -e "   ${YELLOW}请尝试:${NC}"
-        echo -e "   ${CYAN}  • 稍等几分钟后重新运行本脚本 (CI 可能正在构建)${NC}"
-        echo -e "   ${CYAN}  • 手动下载: https://github.com/$REPO_USER/$REPO_NAME/releases/tag/v$VERSION${NC}"
-        echo -e "   ${CYAN}  • 解压到 $INSTALL_DIR 后运行: npm install -g .${NC}"
-        FAILURE=1 && exit 1
-    fi
-    
-    # 清理临时目录
-    [ -d "$TMP_DIR" ] && rm -rf "$TMP_DIR"
-}
-
-install_project_cli() {
-    echo -e "\n${YELLOW}[4/4] 注册系统全局命令...${NC}"
-    cd "$INSTALL_DIR" || exit 1
-    if npm install -g . --registry="$NPM_REGISTRY"; then
-        echo -e "   ${GREEN}✓ 全局命令 openclaw-setup 已解锁${NC}"
-    else
-        echo -e "${RED}❌ 全局命令注册失败，可能需要 sudo 权限。${NC}"
-        FAILURE=1 && exit 1
-    fi
-}
-
-# 执行流程
-require_bootstrap_tools
-install_node_if_needed
-install_from_release_package
-install_project_cli
+# 流程 3: 下载与解包 OpenClaw 预编译 Zip 包
+run_remote_script "mac_linux_3_deploy.sh"
 
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
-echo -e "${GREEN}✓ 部署成功！${NC}"
-echo -e "${YELLOW}运行 openclaw-setup 开始配置${NC}"
+echo -e "${GREEN}✓ OpenClaw 部署成功！${NC}"
+echo -e "${YELLOW}运行 ${NC}${CYAN}openclaw-setup${NC}${YELLOW} 开始配置${NC}"
 echo -e "${GREEN}──────────────────────────────────────────────────${NC}"

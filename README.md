@@ -21,59 +21,72 @@
 
 ---
 
-## 🚀 快速安装
+## 🚀 极简快速安装 (全新版)
 
-### Windows (推荐)
-**请右键点击“开始”，选择“终端管理员”或“PowerShell 管理员”**，然后运行：
+无需懂技术，无需自己装 Node，无需担心国内网络问题。我们深度整合了所有的流程，**只需要下面一行代码**，其余统统全自动解决（包含：下载所需加速器、安装环境、环境关联、核心代码装配等）！
+
+### Windows 用户 (推荐)
+**1. 右键点击“开始菜单”，选择“终端管理员”或“Windows PowerShell (管理员)”**
+**2. 复制下方代码并在窗口中点击鼠标右键粘贴，敲下回车键：**
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
 ```
+*提示：如果有系统弹窗询问是否允许修改系统（安装 Git/Node等环境），请点击允许。部署成功后会提示您关闭当前页面并重新打开一个新的终端。*
 
-### macOS / Linux
-在终端中运行：
+### macOS & Linux 用户
+打开终端 (Terminal)，直接复制下段代码运行（中途可能需要您输入开机密码来确认系统权限）：
 ```bash
 curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
 ```
 
 ---
 
-## ❓ 常见问题 (FAQ)
+## ✅ 验证安装
 
-### 1. 运行 `openclaw-setup` 报错“在此系统上禁止运行脚本”?
-**原因**：Windows 默认策略限制了脚本执行，导致无法加载 `openclaw-setup.ps1` 包装器。  
-**解决**：在“管理员 PowerShell”窗口运行以下命令即可：
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
-```
+无论您使用哪种系统，安装程序最终都会把 OpenClaw 的核心代码资源保存在这儿：
+- **Windows**: `C:\Users\您的用户名\OpenClaw`
+- **macOS / Linux**: `~/OpenClaw` (即用户根目录下的 OpenClaw 文件夹)
 
-### 2. 下载速度慢或超时?
-项目已内置 `ghfast.top` 高速镜像。如果依然遇到连接超时，请尝试：
-- 确认网络能访问 [ghfast.top](https://ghfast.top)
-- 检查本地是否配置了冲突的 NPM 代理（`npm config get proxy`）
-
-### 指定 OpenClaw 版本
-
-默认安装的 OpenClaw 版本为 **2026.2.26**（此版本稳定性最佳，最新版本可能存在 bug）。
-
-如需安装其他版本，可通过 `OPENCLAW_VERSION` 环境变量指定：
-
+**如何确认自己装好了？**
+如果您看到满屏的绿色打勾提示“部署成功”，请**关闭当前所有终端窗口。然后重新打开一个新的终端或 PowerShell**，在里面输入：
 ```bash
-# macOS / Linux
-OPENCLAW_VERSION=2026.2.26 curl -sSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
-
-# Windows PowerShell
-$env:OPENCLAW_VERSION='2026.2.26'; Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
+openclaw-setup
 ```
+如果您看到了全中文的配置交互菜单，恭喜您，机器人已就绪！
 
 ---
 
-## 使用方法
+## 🛠️ 安装过程技术避坑指南 (针对小白)
 
+尽管我们做到了最深度的全自动处理，但因为部分电脑由于杀毒软件或网络运营商的深度拦截，可能需要您的稍微介入：
+
+**Q1：代码输进去敲回车后，出现大片红色字“在此系统上禁止运行脚本”？**
+> **原因**：由于您的 Windows 安全中心设置得比较严格，禁用了 PowerShell 的基础执行权限。
+> **快速解决**：在那个管理员的蓝框框里敲入 `Set-ExecutionPolicy RemoteSigned -Scope CurrentUser -Force` 并回车，然后再次运行上面的一键安装指令即可。
+
+**Q2：提示 “系统 PATH 未能自动重载，无法调用刚安装的 Node” 怎么办？**
+> **原因**：这说明环境已经全给您免弹窗强制静默装好了，但是在 Windows 下，新的环境变量只有在当前窗口被关掉，再新开的窗口里才生效，这导致我们后面连贯操作找不到配置！
+> **极简解法**：听劝，把当前全都是红字的蓝黑框框**直接关掉**。重新再用管理员身份打开一个新的框框，**再运行一次**刚才的一键安装代码就行了！
+
+**Q3：安装进度在下载 `OpenClaw-***.zip` 就一直卡着完全不动？**
+> **技术解答**：目前我们默认使用了 `ghfast.top` 隧道作为境内加速，但由于国内某些地区的宽带运营商时不时会对某些加速线路进行 DNS 污染。
+> **建议**：这没任何花里胡哨的技术手段解，请尝试开个全局的 Clash / V2ray 魔法上网，或者稍等半天后再试一下脚本。
+
+**Q4：全部安装完毕后提示配置失败或者权限被阻挡 (Mac/Linux)？**
+> **原因**：很多 macOS 的内核对文件夹写入采取非常严格的沙箱控制机制，导致最终虽然资源都下载了，就是无法绑定到 `openclaw-setup`。
+> **解决**：在终端框内敲入 `sudo npm install -g .`，输入您的电脑密码并回车。
+
+---
+
+## ⚙️ 使用方法
+
+在部署成功并且系统重启关联了环境路径后，以后只需随时打开终端运行：
 ```bash
 openclaw-setup
 ```
 
 ### 配置分类
+您可以利用它轻松把控您大模型机器人的各个关节：
 
 | 分类       | 说明                                 |
 | ---------- | ------------------------------------ |
@@ -84,19 +97,6 @@ openclaw-setup
 | 定时任务   | Cron 定时执行                        |
 | 网关服务   | 端口、认证、日志                     |
 | 安全控制   | 沙箱、命令执行权限                   |
-
----
-
-## 常见问题
-
-| 问题                        | 解决方案                                  |
-| --------------------------- | ----------------------------------------- |
-| `command not found: node` | 安装 Node.js v22+ 并添加到 PATH           |
-| `Permission denied`       | macOS/Linux 加 `sudo`，Windows 用管理员 |
-| 缺少 `curl` / `git` / `sudo` | 安装脚本会先尝试自动补齐；若系统过于精简，会输出可直接复制的准备命令 |
-| npm 已走镜像但仍安装失败 | 可能是 `openclaw` 依赖里的 GitHub git 依赖超时；当前脚本会自动为当前安装进程注入 GitHub 代理映射 |
-| 网关启动失败                | 运行 `openclaw doctor` 诊断             |
-| 配置不生效                  | 运行 `openclaw gateway restart`         |
 
 ---
 
