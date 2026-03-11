@@ -94,25 +94,6 @@ install_node_if_needed() {
     FAILURE=1 && exit 1
 }
 
-install_from_git_source() {
-    echo -e "\n${YELLOW}[3.5/4] 回退: 正在通过 Git 同步源码 (由于 Release 不可用)...${NC}"
-    local GIT_URL="${PROXY_PREFIX}https://github.com/$REPO_USER/$REPO_NAME.git"
-    
-    if [ -d "$INSTALL_DIR" ]; then
-        rm -rf "${INSTALL_DIR:?}"
-    fi
-    
-    if ! command_exists git; then
-        echo -e "   ${RED}❌ 缺少 git，无法从源码安装。请手动安装 git 后重试。${NC}"
-        FAILURE=1 && exit 1
-    fi
-    
-    git clone "$GIT_URL" "$INSTALL_DIR"
-    cd "$INSTALL_DIR" || exit 1
-    echo -e "   ${YELLOW}正在安装依赖 (可能耗时较长并需要编译)...${NC}"
-    npm install --production --registry="$NPM_REGISTRY"
-}
-
 install_from_release_package() {
     echo -e "\n${YELLOW}[3/4] 下载并解压预编译发行包...${NC}"
     
@@ -162,9 +143,18 @@ install_from_release_package() {
         
         echo -e "   ${GREEN}✓ 已成功部署至 $INSTALL_DIR${NC}"
     else
-        echo -e "   ${RED}❌ 从发行版本下载失败。可能是 Release 未发布或无此架构文件。${NC}"
-        echo -e "   ${YELLOW}💡 正在尝试回退到 Git 源码模式...${NC}"
-        install_from_git_source
+        echo -e "   ${RED}❌ 无法从 Release 页面下载预编译包。${NC}"
+        echo ""
+        echo -e "   ${YELLOW}可能的原因:${NC}"
+        echo -e "   ${CYAN}  1. 该版本的 Release 尚未发布或正在构建中${NC}"
+        echo -e "   ${CYAN}  2. 网络代理 (ghfast.top) 暂时不可用${NC}"
+        echo -e "   ${CYAN}  3. 当前架构 (${OS}-${ARCH}) 无对应的构建产物${NC}"
+        echo ""
+        echo -e "   ${YELLOW}请尝试:${NC}"
+        echo -e "   ${CYAN}  • 稍等几分钟后重新运行本脚本 (CI 可能正在构建)${NC}"
+        echo -e "   ${CYAN}  • 手动下载: https://github.com/$REPO_USER/$REPO_NAME/releases/tag/v$VERSION${NC}"
+        echo -e "   ${CYAN}  • 解压到 $INSTALL_DIR 后运行: npm install -g .${NC}"
+        FAILURE=1 && exit 1
     fi
     
     # 清理临时目录

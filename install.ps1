@@ -89,22 +89,20 @@ function Install-FromReleasePackage {
         
         Write-Host "   ✓ 已成功部署至 $InstallDir" -ForegroundColor Green
     } catch {
-        Write-Host "❌ 无法从 Release 页面下载包。请确认 Release 是否已发布并包含该文件。" -ForegroundColor Red
-        Write-Host "💡 正在尝试回退到 Git 源码模式..." -ForegroundColor Yellow
-        Install-FromGitSource
+        Write-Host "❌ 无法从 Release 页面下载预编译包。" -ForegroundColor Red
+        Write-Host "" -ForegroundColor Red
+        Write-Host "   可能的原因:" -ForegroundColor Yellow
+        Write-Host "     1. 该版本的 Release 尚未发布或正在构建中" -ForegroundColor Gray
+        Write-Host "     2. 网络代理 (ghfast.top) 暂时不可用" -ForegroundColor Gray
+        Write-Host "     3. 当前架构 ($Arch) 无对应的构建产物" -ForegroundColor Gray
+        Write-Host "" -ForegroundColor Red
+        Write-Host "   请尝试:" -ForegroundColor Yellow
+        Write-Host "     • 稍等几分钟后重新运行本脚本 (CI 可能正在构建)" -ForegroundColor Cyan
+        Write-Host "     • 手动下载: https://github.com/$RepoUser/$RepoName/releases/tag/v$Version" -ForegroundColor Cyan
+        Write-Host "     • 解压到 $InstallDir 后运行: npm install -g ." -ForegroundColor Cyan
+        $global:Success = $false
+        return
     }
-}
-
-function Install-FromGitSource {
-    Write-Host "`n[3.5/4] 回退: 正在通过 Git 同步源码 (由于 Release 不可用)..." -ForegroundColor Yellow
-    $GitUrl = "${ProxyPrefix}https://github.com/$RepoUser/$RepoName.git"
-    if (Test-Path $InstallDir) {
-        Remove-Item -Path $InstallDir -Recurse -Force -ErrorAction SilentlyContinue
-    }
-    & git clone $GitUrl $InstallDir
-    Set-Location $InstallDir
-    Write-Host '   正在安装依赖 (可能耗时较长并需要编译)...' -ForegroundColor Cyan
-    & npm install --production --registry=https://registry.npmmirror.com
 }
 
 function Install-ProjectCli {
