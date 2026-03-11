@@ -25,6 +25,9 @@ jobs:
           - os: macos-14
             arch: arm64
             artifact_name: macOS-arm64
+          - os: ubuntu-latest
+            arch: x64
+            artifact_name: Linux-x64
 
     steps:
       - name: Checkout One-Click Wrapper
