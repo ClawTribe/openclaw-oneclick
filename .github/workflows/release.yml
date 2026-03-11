@@ -77,7 +77,7 @@ jobs:
         shell: bash
         run: |
           cd core
-          pnpm install
+          pnpm install --no-frozen-lockfile
         env:
           NPM_CONFIG_NODE_LLAMA_CPP_SKIP_BUILD: false
 
