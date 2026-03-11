@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Continue'
 $global:Success = $false
 
-$Version = '3.2.1'
+$Version = '3.2.2'
 $RepoUser = 'ClawTribe'
 $RepoName = 'openclaw-oneclick'
 $InstallDir = Join-Path $HOME 'OpenClaw'

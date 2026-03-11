@@ -5,7 +5,7 @@
 set -uo pipefail
 
 # 变量设置
-VERSION="3.2.1"
+VERSION="3.2.2"
 REPO_USER="ClawTribe"
 REPO_NAME="openclaw-oneclick"
 INSTALL_DIR="$HOME/OpenClaw"

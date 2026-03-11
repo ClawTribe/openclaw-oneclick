@@ -40,6 +40,13 @@ jobs:
         with:
           node-version: 22
 
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm --version
+
       - name: Download & Extract Official OpenClaw Core
         shell: bash
         run: |
@@ -67,9 +74,10 @@ jobs:
           '
 
       - name: Install Dependencies (Full - includes dev tools for build)
+        shell: bash
         run: |
           cd core
-          npm install
+          pnpm install
         env:
           NPM_CONFIG_NODE_LLAMA_CPP_SKIP_BUILD: false
 
@@ -83,7 +91,7 @@ jobs:
         shell: bash
         run: |
           cd core
-          npm prune --production
+          pnpm prune --prod
 
       - name: Aggressive Pruning (Cleanup)
         shell: bash
