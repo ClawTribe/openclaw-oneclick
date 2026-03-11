@@ -36,7 +36,11 @@ function Run-RemoteScript {
     try {
         [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
         $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + ".ps1")
+        
+        $ProgressPreference = 'SilentlyContinue'
         $resp = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+        $ProgressPreference = 'Continue'
+        
         # 强制将下载的源文件保存为带 BOM 的 UTF-8（解决 Win10 PS5.1 下中文字符串截断与乱码报错的问题）
         [System.IO.File]::WriteAllText($tempScript, $resp.Content, [System.Text.Encoding]::UTF8)
     } catch {

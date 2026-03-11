@@ -24,7 +24,14 @@ if (-not (Check-NodeVersion)) {
     }
 
     Write-Color "   ➤ 下载淘宝离线 MSI ($nodeUrl) ..." "Gray"
-    Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing -TimeoutSec 120
+    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+        $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "$nodeUrl", "-o", "`"$nodeInstaller`"" -Wait -NoNewWindow -PassThru
+        if ($p.ExitCode -ne 0) { throw "下载 Node 失败" }
+    } else {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing -TimeoutSec 120
+        $ProgressPreference = 'Continue'
+    }
     
     Write-Color "   ➤ 强制静默写入系统注册表... " "Yellow"
     $process = Start-Process -FilePath "msiexec.exe" -ArgumentList "/i `"$nodeInstaller`" /qn /norestart" -Wait -NoNewWindow -PassThru

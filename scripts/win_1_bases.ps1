@@ -21,7 +21,14 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     }
     
     Write-Color "   ➤ 正在从淘宝直连拉取客户端 ($gitUrl) ..." "Gray"
-    Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing -TimeoutSec 120
+    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+        $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "$gitUrl", "-o", "`"$gitInstaller`"" -Wait -NoNewWindow -PassThru
+        if ($p.ExitCode -ne 0) { throw "下载 Git 失败" }
+    } else {
+        $ProgressPreference = 'SilentlyContinue'
+        Invoke-WebRequest -Uri $gitUrl -OutFile $gitInstaller -UseBasicParsing -TimeoutSec 120
+        $ProgressPreference = 'Continue'
+    }
     
     Write-Color "   ➤ 后台安装中。如果您看到 UAC 系统询问窗口，请点击 [允许 / 是] ..." "Yellow"
     $args = @("/VERYSILENT", "/NORESTART", "/NOCANCEL", "/SP-", "/SUPPRESSMSGBOXES")

@@ -11,14 +11,19 @@ if [[ "$ARCH" == "x86_64" ]]; then ARCH="x64"; fi
 if [[ "$ARCH" == "aarch64" ]]; then ARCH="arm64"; fi
 
 PACKAGE_NAME="OpenClaw-${OS}-${ARCH}.zip"
-DOWNLOAD_URL="${RELEASE_BASE_URL}/${PACKAGE_NAME}"
+# 绕过 ghfast 边缘缓存可能记住的 404 状态
+DOWNLOAD_URL="${RELEASE_BASE_URL}/${PACKAGE_NAME}?t=$(date +%s)"
+DIRECT_URL="https://github.com/$REPO_USER/$REPO_NAME/releases/download/v$VERSION/$PACKAGE_NAME"
+
 TMP_DIR=$(mktemp -d)
 ZIP_PATH="${TMP_DIR}/${PACKAGE_NAME}"
 
 echo -e "   目标架构: ${OS} - ${ARCH}"
 echo -e "   正在从云端拉取 (带断点续传加速): ${PACKAGE_NAME}"
 
-if curl -fSL --progress-bar --connect-timeout 15 --max-time 300 "$DOWNLOAD_URL" -o "$ZIP_PATH"; then
+# 尝试国内加速节点，如果失败则静默采用 Github 直连
+if curl -fSL --progress-bar --connect-timeout 15 "$DOWNLOAD_URL" -o "$ZIP_PATH" || \
+   curl -fSL --progress-bar --connect-timeout 20 "$DIRECT_URL" -o "$ZIP_PATH"; then
     echo -e "   ${GREEN}✓ 下载完成，正在解压与清洗目录...${NC}"
     
     if [ ! -d "$INSTALL_DIR" ]; then 
