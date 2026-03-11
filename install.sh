@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# OpenClaw One-Click macOS/Linux Downloader (v3.1.0)
+# OpenClaw One-Click macOS/Linux Downloader (v3.2.0)
 # Designed for ClawTribe/openclaw-oneclick
 
 set -uo pipefail
@@ -47,11 +47,35 @@ trap pause_on_exit EXIT
 
 require_bootstrap_tools() {
     echo -e "\n${YELLOW}[1/4] 检查基础环境...${NC}"
+    
+    # 检查 curl
     if ! command_exists curl; then
         echo -e "${RED}❌ 缺少 curl，请先安装。${NC}"
         FAILURE=1 && exit 1
     fi
-    echo -e "   ${GREEN}✓ HTTP 工具就绪${NC}"
+    echo -e "   ${GREEN}✓ curl 工具就绪${NC}"
+
+    # 检查 unzip
+    if ! command_exists unzip; then
+        echo -e "   ${YELLOW}⚠ 缺少 unzip 解压工具，正在尝试自动获取...${NC}"
+        if command_exists apt-get; then
+            sudo apt-get update && sudo apt-get install -y unzip
+        elif command_exists yum; then
+            sudo yum install -y unzip
+        elif command_exists dnf; then
+            sudo dnf install -y unzip
+        elif command_exists brew; then
+            brew install unzip
+        fi
+
+        if ! command_exists unzip; then
+            echo -e "${RED}❌ 无法自动安装 unzip，请手动安装后重试。${NC}"
+            echo -e "   💡 Debian/Ubuntu: ${CYAN}sudo apt install unzip${NC}"
+            echo -e "   💡 CentOS/Fedora: ${CYAN}sudo yum install unzip${NC}"
+            FAILURE=1 && exit 1
+        fi
+    fi
+    echo -e "   ${GREEN}✓ unzip 工具就绪${NC}"
 }
 
 install_node_if_needed() {
