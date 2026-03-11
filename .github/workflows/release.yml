@@ -53,12 +53,14 @@ jobs:
         if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
-          Compress-Archive -Path . -DestinationPath "OpenClaw-${{ matrix.artifact_name }}.zip"
+          # 仅压缩当前目录下的内容，排除压缩包本身
+          Compress-Archive -Path * -Exclude "OpenClaw-*.zip" -DestinationPath "OpenClaw-${{ matrix.artifact_name }}.zip" -CompressionLevel Optimal
 
       - name: Create Zip Package (macOS)
         if: matrix.os != 'windows-latest'
         run: |
-          zip -r "OpenClaw-${{ matrix.artifact_name }}.zip" .
+          # 使用相对路径排除顶级目录
+          zip -9 -r "OpenClaw-${{ matrix.artifact_name }}.zip" ./* -x "OpenClaw-*.zip"
 
       - name: Upload to Release
         uses: softprops/action-gh-release@v2

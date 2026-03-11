@@ -4,7 +4,7 @@
 $ErrorActionPreference = 'Continue'
 $global:Success = $false
 
-$Version = '3.1.1'
+$Version = '3.1.3'
 $RepoUser = 'ClawTribe'
 $RepoName = 'openclaw-oneclick'
 $InstallDir = Join-Path $HOME 'OpenClaw'
@@ -76,6 +76,17 @@ function Install-FromReleasePackage {
         New-Item -ItemType Directory -Path $InstallDir -Force | Out-Null
         
         Expand-Archive -Path $ZipPath -DestinationPath $InstallDir -Force
+        
+        # 智能路径修正：检查是否在子目录中
+        if (-not (Test-Path (Join-Path $InstallDir "package.json"))) {
+            $subDir = Get-ChildItem -Path $InstallDir -Directory | Select-Object -First 1
+            if ($subDir -and (Test-Path (Join-Path $subDir.FullName "package.json"))) {
+                Write-Host "   检测到嵌套目录，正在自动修正路径..." -ForegroundColor Gray
+                Get-ChildItem -Path $subDir.FullName | Move-Item -Destination $InstallDir -Force
+                Remove-Item -Path $subDir.FullName -Recurse -Force
+            }
+        }
+        
         Write-Host "   ✓ 已成功部署至 $InstallDir" -ForegroundColor Green
     } catch {
         Write-Host "❌ 无法从 Release 页面下载包。请确认 Release 是否已发布并包含该文件。" -ForegroundColor Red
