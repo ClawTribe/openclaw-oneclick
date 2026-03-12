@@ -1,25 +1,12 @@
 # OpenClaw 配置管理工具
 
-> **OpenClaw 一键部署 + 全中文配置管理**
+> **OpenClaw 一键部署**
 
-[![Version](https://img.shields.io/badge/Version-3.2.0-blue.svg)](https://github.com/ClawTribe/openclaw-oneclick)
+[![Version](https://img.shields.io/badge/Version-3.3.4-blue.svg)](https://github.com/ClawTribe/openclaw-oneclick)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-专为 [OpenClaw](https://openclaw.ai) 设计的中文配置管理工具，通过直观的交互式菜单管理 AI 助手的所有配置。
+专为 [OpenClaw](https://openclaw.ai) 设计的一键部署，安装适配node、git环境。
 
----
-
-## 功能特性
-
-| 特性                 | 说明                                              |
-| -------------------- | ------------------------------------------------- |
-| **中英文切换** | 一键切换界面语言                                  |
-| **配置说明**   | 每个选项都有用途说明                              |
-| **多通道支持** | WhatsApp / Telegram / Discord / Slack / Signal 等 |
-| **安全控制**   | 沙箱模式、命令执行权限控制                        |
-| **自动更新**   | 启动时自动检查新版本                              |
-
----
 
 ## 🚀 极简快速安装 (全新版)
 
@@ -33,19 +20,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 ```
 *提示：如果有系统弹窗询问是否允许修改系统（安装 Git/Node等环境），请点击允许。部署成功后会提示您关闭当前页面并重新打开一个新的终端。*
 
-> 常见报错：如果你看到红字提示 `Write-Color` / `CommandNotFoundException`，通常是旧版安装脚本中 `Write-Color` 在子流程脚本作用域不可见导致。
-> 解决方式：更新到最新版后无需手动处理；若你正在使用旧缓存/旧脚本，请重新运行上面的一键命令（确保拉取到最新 `install.ps1`）。
-
-> 注：安装脚本每次运行都会自动测速多个 GitHub 加速隧道，并选择当前网络环境下最稳定/最快的线路；无需手动改域名。
-
 ### macOS & Linux 用户
 打开终端 (Terminal)，直接复制下段代码运行（中途可能需要您输入开机密码来确认系统权限）：
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
 ```
-
-> 注：安装脚本每次运行都会自动测速多个 GitHub 加速隧道，并选择当前网络环境下最稳定/最快的线路；无需手动改域名。
-
 ---
 
 ## ✅ 验证安装
@@ -57,10 +36,104 @@ curl -fsSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/in
 **如何确认自己装好了？**
 如果您看到满屏的绿色打勾提示“部署成功”，请**关闭当前所有终端窗口。然后重新打开一个新的终端或 PowerShell**，在里面输入：
 ```bash
-openclaw-setup
+openclaw onboard --install-daemon
 ```
-如果您看到了全中文的配置交互菜单，恭喜您，机器人已就绪！
+随后将进入 **OpenClaw 官方新手引导（Onboarding）**。按下文的推荐选项完成后，即可启动网关并在浏览器打开控制台。
 
+---
+
+## 🧭 官方新手引导（推荐流程：QuickStart + Z.AI）
+
+> 说明：这是官方交互式向导。方向键选择，回车确认；多选项用空格勾选。
+
+### 1) 安全提示
+出现：
+
+◆  I understand this is personal-by-default and shared/multi-user use requires lock-down. Continue?
+│  ○ Yes / ● No
+
+操作：按键盘**左方向键**切到 **Yes**，回车。
+
+### 2) Onboarding mode
+出现：
+
+Onboarding mode
+│  ● QuickStart (Configure details later via openclaw configure.)
+│  ○ Manual
+
+操作：保持 **QuickStart**，回车。
+
+### 3) Existing config detected（如果出现）
+若检测到已有配置：
+
+Existing config detected
+…
+◆  Config handling
+│  ● Use existing values
+│  ○ Update values
+│  ○ Reset
+
+操作：选择 **Use existing values**，回车。
+
+### 4) 模型与鉴权（Z.AI）
+在 **Model/auth provider** 中：方向键下移选择 **Z.AI**。
+
+随后在 **Z.AI auth method** 中：选择 **Coding-Plan-CN**。
+
+在 **How do you want to provide this API key?** 中：选择
+
+● Paste API key now (Stores the key directly in OpenClaw config)
+
+操作：回车后粘贴 API Key，再回车。
+
+推荐（智谱免费 API 申请）：https://www.bigmodel.cn/invite?icode=xWdj8FBSlTeq3bY3R3fPbkjPr3uHog9F4g5tjuOUqno%3D
+
+在 **Default model** 中：方向键下移选择 **zai/glm-4.7-flash**。
+
+### 5) Channel（QuickStart）
+在 **Select channel (QuickStart)** 中：方向键下移选择
+
+● Skip for now (You can add channels later …)
+
+> 说明：后续如需配置飞书/Telegram 等，可以再次运行 `openclaw onboard --install-daemon` 进入向导。
+
+### 6) Configure skills now?
+出现：
+
+◆  Configure skills now? (recommended)
+│  ● Yes / ○ No
+
+操作：选择 **No**。
+
+### 7) Enable hooks?
+在 **Enable hooks?** 多选列表中，用空格**推荐勾选**以下项，回车：
+
+- boot-md
+- bootstrap-extra-files
+- command-logger
+- session-memory
+
+### 8) Gateway service already installed（如果出现）
+出现：
+
+◆  Gateway service already installed
+│  ● Restart
+│  ○ Reinstall
+│  ○ Skip
+
+操作：选择 **Restart**，回车。
+
+### 9) 打开浏览器控制台
+完成后终端通常会输出可访问的 URL（以终端输出为准，示例）：
+
+http://localhost:18789/#token=…
+
+在浏览器打开该地址即可进入 OpenClaw 控制台。
+
+执行下方命令也可拿到 URL 访问
+```bash
+openclaw dashboard
+```
 ---
 
 ## 🛠️ 安装过程技术避坑指南 (针对小白)
@@ -83,8 +156,10 @@ openclaw-setup
 > 3) 或手动把脚本中的加速前缀切换为你本地可用的那条线路。
 
 **Q4：全部安装完毕后提示配置失败或者权限被阻挡 (Mac/Linux)？**
-> **原因**：很多 macOS 的内核对文件夹写入采取非常严格的沙箱控制机制，导致最终虽然资源都下载了，就是无法绑定到 `openclaw-setup`。
-> **解决**：在终端框内敲入 `sudo npm install -g .`，输入您的电脑密码并回车。
+> **原因**：很多 macOS 的内核对文件夹写入采取非常严格的沙箱控制机制，可能导致 CLI 命令未能成功写入全局路径。
+> **解决**：优先使用官方向导 `openclaw onboard --install-daemon` 并按终端提示授权；必要时可在终端中执行 `sudo npm install -g .`，输入电脑密码并回车。
+
+> 补充：目前推荐使用官方向导 `openclaw onboard --install-daemon` 完成新手引导与网关安装；如遇到权限问题，优先按终端提示进行授权，或在必要时使用 `sudo`。
 
 ---
 
@@ -92,8 +167,10 @@ openclaw-setup
 
 在部署成功并且系统重启关联了环境路径后，以后只需随时打开终端运行：
 ```bash
-openclaw-setup
+openclaw onboard --install-daemon
 ```
+
+> 提示：向导完成后，如需后续改配置，可使用 `openclaw configure` 进行细节调整。
 
 ### 配置分类
 您可以利用它轻松把控您大模型机器人的各个关节：
