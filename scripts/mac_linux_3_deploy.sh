@@ -5,6 +5,41 @@ echo -e "\n${YELLOW}[3/3] 正在拉取 OpenClaw 一键集成包并注册全局..
 
 command_exists() { command -v "$1" >/dev/null 2>&1; }
 
+extract_zip() {
+    local zip_path="$1"
+    local dest_dir="$2"
+
+    # macOS 上 Info-ZIP 的 unzip 在某些包含扩展属性/特殊条目的压缩包中可能报：
+    #   "Attribute not found" / "unable to process ..."
+    # 优先使用系统自带 ditto 解压；若不可用再用 unzip 并关闭 extra attributes。
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        if command_exists ditto; then
+            ditto -x -k "$zip_path" "$dest_dir"
+            return $?
+        fi
+        if command_exists unzip; then
+            unzip -o -q -X "$zip_path" -d "$dest_dir"
+            return $?
+        fi
+        return 127
+    fi
+
+    # Linux：优先 unzip；若系统无 unzip 则尝试 bsdtar/tar（部分发行版 tar 可解 zip）
+    if command_exists unzip; then
+        unzip -o -q "$zip_path" -d "$dest_dir"
+        return $?
+    fi
+    if command_exists bsdtar; then
+        bsdtar -xf "$zip_path" -C "$dest_dir"
+        return $?
+    fi
+    if command_exists tar; then
+        tar -xf "$zip_path" -C "$dest_dir"
+        return $?
+    fi
+    return 127
+}
+
 OS_NAME=$(uname -s)
 ARCH=$(uname -m)
 
@@ -40,8 +75,16 @@ if curl -fSL --progress-bar --connect-timeout 15 "$DOWNLOAD_URL" -o "$ZIP_PATH" 
     chmod -R 777 "$INSTALL_DIR/node_modules" 2>/dev/null || true
     rm -rf "$INSTALL_DIR/node_modules" 2>/dev/null || true
 
-    # -o 参数强制覆盖不提示
-    unzip -o -q "$ZIP_PATH" -d "$INSTALL_DIR"
+    # 某些 macOS 环境下该路径可能残留为“文件/不可写条目”，会导致解压时创建目录失败
+    rm -rf "$INSTALL_DIR/extensions/memory-lancedb/node_modules/openai" 2>/dev/null || true
+
+    # 解压（macOS 优先 ditto；否则用 unzip 并禁用 extra attributes 以规避 Attribute not found）
+    if ! extract_zip "$ZIP_PATH" "$INSTALL_DIR"; then
+        echo -e "   ${RED}❌ 解压失败。${NC}"
+        echo -e "   ${YELLOW}提示：请确认目录可写：${NC}${CYAN}$INSTALL_DIR${NC}"
+        echo -e "   ${YELLOW}若你使用了同步盘/特殊文件系统，建议将 INSTALL_DIR 改到本地磁盘目录后重试。${NC}"
+        exit 1
+    fi
     
     # 路径漂移保护 (防止打包问题导致根目录嵌套一层文件夹)
     if [ ! -f "$INSTALL_DIR/package.json" ]; then
