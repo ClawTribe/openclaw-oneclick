@@ -10,10 +10,137 @@ $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
 
-# 分发加速线路
-$ProxyPrefix = 'https://ghfast.top/'
-$global:ReleaseBaseUrl = "${ProxyPrefix}https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version"
-$global:RawBaseUrl = "${ProxyPrefix}https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts"
+# 分发加速线路（每次运行动态测速并选择最优）
+$global:ProxyCandidates = @(
+  @{ Name = 'ghproxy.net';        Prefix = 'https://ghproxy.net/' },
+  @{ Name = 'gh-proxy.com';       Prefix = 'https://gh-proxy.com/' },
+  @{ Name = 'ghproxy.homeboyc.cn';Prefix = 'https://ghproxy.homeboyc.cn/' },
+  @{ Name = 'ghproxy.cn';         Prefix = 'https://ghproxy.cn/' },
+  @{ Name = 'ghp.ci';             Prefix = 'https://ghp.ci/' },
+  @{ Name = 'ghfast.top';         Prefix = 'https://ghfast.top/' },
+  @{ Name = 'mirror.ghproxy.com'; Prefix = 'https://mirror.ghproxy.com/' },
+  @{ Name = 'direct';             Prefix = '' }
+)
+
+function Get-PlatformPackageName {
+    # 仅用于测速 Release 链路：按当前系统架构推导包名，避免测速到不存在的文件导致误判
+    $arch = if ([Environment]::Is64BitProcess) { "x64" } else { "x86" }
+    return "OpenClaw-Windows-$arch.zip"
+}
+
+function Invoke-Probe {
+    param(
+        [Parameter(Mandatory=$true)][string]$Url,
+        [string]$HeaderName,
+        [string]$HeaderValue
+    )
+
+    try {
+        $headers = @{}
+        if ($HeaderName) { $headers[$HeaderName] = $HeaderValue }
+
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        # 用 HEAD + 短超时做轻量探测；对 Release 用 Range 防止大流量
+        $resp = Invoke-WebRequest -Uri $Url -Method Head -Headers $headers -TimeoutSec 12 -UseBasicParsing -ErrorAction Stop
+        $sw.Stop()
+
+        $code = [int]$resp.StatusCode
+        return @{ Ok = $true; Code = $code; Total = [double]::Parse(($sw.Elapsed.TotalSeconds.ToString('F3'))) }
+    } catch {
+        return @{ Ok = $false; Code = 0; Total = 999 }
+    }
+}
+
+function Score-Proxy {
+    param(
+        [Parameter(Mandatory=$true)][hashtable]$Candidate,
+        [int]$Tries = 2
+    )
+
+    $ok = 0
+    $sum = 0.0
+    $totalTries = $Tries * 2
+
+    $rawPath = "https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts/win_1_bases.ps1"
+    $rawUrl = $Candidate.Prefix + $rawPath
+
+    for ($i=0; $i -lt $Tries; $i++) {
+        $r = Invoke-Probe -Url $rawUrl
+        if ($r.Ok -and ($r.Code -ge 200 -and $r.Code -lt 400)) { $ok++; $sum += $r.Total }
+    }
+
+    $pkg = Get-PlatformPackageName
+    $relPath = "https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version/$pkg"
+    $relUrl = $Candidate.Prefix + $relPath
+
+    for ($i=0; $i -lt $Tries; $i++) {
+        $r = Invoke-Probe -Url $relUrl -HeaderName 'Range' -HeaderValue 'bytes=0-1048575'
+        if ($r.Ok -and ($r.Code -eq 200 -or $r.Code -eq 206 -or ($r.Code -ge 300 -and $r.Code -lt 400))) { $ok++; $sum += $r.Total }
+    }
+
+    $avg = if ($ok -gt 0) { [math]::Round(($sum / $ok), 3) } else { 999 }
+    return @{ Name=$Candidate.Name; Prefix=$Candidate.Prefix; Ok=$ok; Total=$totalTries; Avg=$avg }
+}
+
+function Select-BestProxy {
+    param([int]$Tries = 2)
+
+    Write-Color "➤ 正在测速可用加速源（每次运行都会自动选择最优线路）..." "Yellow"
+
+    $best = $null
+    foreach ($c in $global:ProxyCandidates) {
+        $s = Score-Proxy -Candidate $c -Tries $Tries
+        Write-Color ("   - {0}: ok={1}/{2} avg={3}s" -f $s.Name, $s.Ok, $s.Total, $s.Avg) "Cyan"
+
+        if (-not $best) {
+            $best = $s
+        } elseif ($s.Ok -gt $best.Ok) {
+            $best = $s
+        } elseif ($s.Ok -eq $best.Ok -and $s.Avg -lt $best.Avg) {
+            $best = $s
+        }
+    }
+
+    return $best
+}
+
+function Select-FallbackProxy {
+    param(
+        [Parameter(Mandatory=$true)][string]$ChosenPrefix,
+        [int]$Tries = 1
+    )
+
+    $best = $null
+    foreach ($c in $global:ProxyCandidates) {
+        if ($c.Prefix -eq $ChosenPrefix) { continue }
+        $s = Score-Proxy -Candidate $c -Tries $Tries
+        if (-not $best) {
+            $best = $s
+        } elseif ($s.Ok -gt $best.Ok) {
+            $best = $s
+        } elseif ($s.Ok -eq $best.Ok -and $s.Avg -lt $best.Avg) {
+            $best = $s
+        }
+    }
+    return $best
+}
+
+$best = Select-BestProxy -Tries 2
+$fallback = Select-FallbackProxy -ChosenPrefix $best.Prefix -Tries 1
+
+# 默认首选加速源（兼容旧变量命名）
+$ProxyPrefix = $best.Prefix
+$global:FallbackProxyPrefix = $fallback.Prefix
+
+Write-Color ("✓ 已选择最优线路: {0}（备用: {1}）" -f $best.Name, $fallback.Name) "Green"
+
+if ($ProxyPrefix) {
+  $global:ReleaseBaseUrl = "${ProxyPrefix}https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version"
+  $global:RawBaseUrl = "${ProxyPrefix}https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts"
+} else {
+  $global:ReleaseBaseUrl = "https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version"
+  $global:RawBaseUrl = "https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts"
+}
 $global:NodeVersion = '22.14.0'
 $global:NpmRegistry = 'https://registry.npmmirror.com'
 
@@ -40,7 +167,6 @@ if ($freeMB -lt 500) {
 function Run-RemoteScript {
     param([string]$ScriptName)
     
-    $ScriptUrl = "$global:RawBaseUrl/$ScriptName"
     Write-Color "➤ 正在拉取流程套件: $ScriptName ..." "Gray"
     
     try {
@@ -48,7 +174,29 @@ function Run-RemoteScript {
         $tempScript = Join-Path ([System.IO.Path]::GetTempPath()) ([guid]::NewGuid().ToString() + ".ps1")
         
         $ProgressPreference = 'SilentlyContinue'
-        $resp = Invoke-WebRequest -Uri $ScriptUrl -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+
+        $directBase = "https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts"
+
+        $candidates = @(
+          "$global:RawBaseUrl/$ScriptName"
+        )
+
+        if ($global:FallbackProxyPrefix) {
+          $candidates += ($global:FallbackProxyPrefix + "https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts/$ScriptName")
+        }
+        $candidates += "$directBase/$ScriptName"
+
+        $resp = $null
+        $lastErr = $null
+        foreach ($u in $candidates) {
+          try {
+            $resp = Invoke-WebRequest -Uri $u -UseBasicParsing -TimeoutSec 30 -ErrorAction Stop
+            if ($resp -and $resp.Content) { break }
+          } catch {
+            $lastErr = $_
+          }
+        }
+        if (-not $resp) { throw "All download candidates failed. LastError: $lastErr" }
         $ProgressPreference = 'Continue'
         
         # 强制将下载的源文件保存为带 BOM 的 UTF-8（解决 Win10 PS5.1 下中文字符串截断与乱码报错的问题）

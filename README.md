@@ -29,15 +29,19 @@
 **1. 右键点击“开始菜单”，选择“终端管理员”或“Windows PowerShell (管理员)”**
 **2. 复制下方代码并在窗口中点击鼠标右键粘贴，敲下回车键：**
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
+Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
 ```
 *提示：如果有系统弹窗询问是否允许修改系统（安装 Git/Node等环境），请点击允许。部署成功后会提示您关闭当前页面并重新打开一个新的终端。*
+
+> 注：安装脚本每次运行都会自动测速多个 GitHub 加速隧道，并选择当前网络环境下最稳定/最快的线路；无需手动改域名。
 
 ### macOS & Linux 用户
 打开终端 (Terminal)，直接复制下段代码运行（中途可能需要您输入开机密码来确认系统权限）：
 ```bash
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | bash
 ```
+
+> 注：安装脚本每次运行都会自动测速多个 GitHub 加速隧道，并选择当前网络环境下最稳定/最快的线路；无需手动改域名。
 
 ---
 
@@ -69,8 +73,11 @@ openclaw-setup
 > **极简解法**：听劝，把当前全都是红字的蓝黑框框**直接关掉**。重新再用管理员身份打开一个新的框框，**再运行一次**刚才的一键安装代码就行了！
 
 **Q3：安装进度在下载 `OpenClaw-***.zip` 就一直卡着完全不动？**
-> **技术解答**：目前我们默认使用了 `ghfast.top` 隧道作为境内加速，但由于国内某些地区的宽带运营商时不时会对某些加速线路进行 DNS 污染。
-> **建议**：这没任何花里胡哨的技术手段解，请尝试开个全局的 Clash / V2ray 魔法上网，或者稍等半天后再试一下脚本。
+> **技术解答**：安装脚本会按顺序尝试多个 GitHub 加速隧道（例如 `ghproxy.net`、`ghfast.top`），并在失败时自动回退到 GitHub 源站直连。不同地区/运营商对不同隧道的连通性差异很大，可能出现某个隧道突然超时。
+> **建议**：
+> 1) 直接重试一次（可能是隧道短时抖动）；
+> 2) 若仍失败，可尝试全局代理（Clash / V2ray）；
+> 3) 或手动把脚本中的加速前缀切换为你本地可用的那条线路。
 
 **Q4：全部安装完毕后提示配置失败或者权限被阻挡 (Mac/Linux)？**
 > **原因**：很多 macOS 的内核对文件夹写入采取非常严格的沙箱控制机制，导致最终虽然资源都下载了，就是无法绑定到 `openclaw-setup`。
