@@ -78,11 +78,22 @@ jobs:
           cd core
           npm run build
 
+      - name: Build Control UI (dist/control-ui/)
+        shell: bash
+        run: |
+          cd core
+          pnpm ui:build
+
       - name: Prune Core Dev Dependencies
         shell: bash
         run: |
           cd core
           pnpm prune --prod
+
+      - name: Cleanup UI Build Dependencies
+        shell: bash
+        run: |
+          rm -rf core/ui/node_modules
 
       - name: Aggressive Pruning (Cleanup)
         shell: bash
