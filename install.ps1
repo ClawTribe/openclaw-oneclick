@@ -10,6 +10,22 @@ $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
 
+# --- 输出工具（必须在任何脚本/子脚本输出前可用） ---
+# 说明：子流程脚本通过 `& $tempScript` 在独立脚本作用域执行，无法直接访问本脚本的 script-scope 函数。
+# 将 Write-Color 定义为 global scope，确保 scripts/win_*.ps1 等远程脚本也能调用。
+function global:Write-Color {
+    param(
+        [Parameter(Mandatory = $true)][string]$Text,
+        [string]$Color = 'White'
+    )
+    try {
+        Write-Host $Text -ForegroundColor $Color
+    } catch {
+        # 兼容：颜色名异常/不可用时降级为普通输出
+        Write-Host $Text
+    }
+}
+
 # 分发加速线路（每次运行动态测速并选择最优）
 $global:ProxyCandidates = @(
   @{ Name = 'ghproxy.net';        Prefix = 'https://ghproxy.net/' },
@@ -143,11 +159,6 @@ if ($ProxyPrefix) {
 }
 $global:NodeVersion = '22.14.0'
 $global:NpmRegistry = 'https://registry.npmmirror.com'
-
-function Write-Color {
-    param($Text, $Color)
-    Write-Host $Text -ForegroundColor $Color
-}
 
 Write-Color "`n──────────────────────────────────────────────────" "Cyan"
 Write-Color "  🚀 OpenClaw 环境管家 (Windows)" "Cyan"

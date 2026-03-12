@@ -1,6 +1,17 @@
 # Windows 步骤 1: 权限与基础环境 (Git)
 $ErrorActionPreference = 'Stop'
 
+# 兜底：若用户单独运行本脚本，或上层未注入 Write-Color，则提供本地实现
+if (-not (Get-Command Write-Color -ErrorAction SilentlyContinue)) {
+    function Write-Color {
+        param(
+            [Parameter(Mandatory = $true)][string]$Text,
+            [string]$Color = 'White'
+        )
+        try { Write-Host $Text -ForegroundColor $Color } catch { Write-Host $Text }
+    }
+}
+
 Write-Color "`n[1/3] 正在梳理系统基础环境 (Git与权限策略)..." "Yellow"
 
 if ((Get-ExecutionPolicy) -eq 'Restricted') {

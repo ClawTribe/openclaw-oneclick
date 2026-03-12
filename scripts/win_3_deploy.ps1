@@ -1,6 +1,17 @@
 # Windows 步骤 3: 提取并部署核心应用
 
 $ErrorActionPreference = 'Stop'
+
+# 兜底：若用户单独运行本脚本，或上层未注入 Write-Color，则提供本地实现
+if (-not (Get-Command Write-Color -ErrorAction SilentlyContinue)) {
+    function Write-Color {
+        param(
+            [Parameter(Mandatory = $true)][string]$Text,
+            [string]$Color = 'White'
+        )
+        try { Write-Host $Text -ForegroundColor $Color } catch { Write-Host $Text }
+    }
+}
 Write-Color "`n[3/3] 下载并装载 OpenClaw 预构建平台包..." "Yellow"
 
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("openclaw-dl-" + [guid]::NewGuid().ToString())

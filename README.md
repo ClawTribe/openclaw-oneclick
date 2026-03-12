@@ -33,6 +33,9 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 ```
 *提示：如果有系统弹窗询问是否允许修改系统（安装 Git/Node等环境），请点击允许。部署成功后会提示您关闭当前页面并重新打开一个新的终端。*
 
+> 常见报错：如果你看到红字提示 `Write-Color` / `CommandNotFoundException`，通常是旧版安装脚本中 `Write-Color` 在子流程脚本作用域不可见导致。
+> 解决方式：更新到最新版后无需手动处理；若你正在使用旧缓存/旧脚本，请重新运行上面的一键命令（确保拉取到最新 `install.ps1`）。
+
 > 注：安装脚本每次运行都会自动测速多个 GitHub 加速隧道，并选择当前网络环境下最稳定/最快的线路；无需手动改域名。
 
 ### macOS & Linux 用户
