@@ -250,7 +250,7 @@ try {
     if ($global:Success) {
         Write-Color "✓ OpenClaw 已成功部署！" "Green"
         Write-Color "  为确保后续无痛体验，请关闭此窗口并[重新打开一个全新 PowerShell]，然后运行：" "Yellow"
-        Write-Color "  openclaw-setup" "Cyan"
+        Write-Color "  openclaw onboard --install-daemon" "Cyan"
     } else {
         Write-Color "⚠ 安装未完全成功。请翻看上方的红色错误日志。" "Yellow"
     }

@@ -340,5 +340,5 @@ run_remote_script "mac_linux_3_deploy.sh"
 
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
 echo -e "${GREEN}✓ OpenClaw 部署成功！${NC}"
-echo -e "${YELLOW}运行 ${NC}${CYAN}openclaw-setup${NC}${YELLOW} 开始配置${NC}"
+echo -e "${YELLOW}运行 ${NC}${CYAN}openclaw onboard --install-daemon${NC}${YELLOW} 开始配置${NC}"
 echo -e "${GREEN}──────────────────────────────────────────────────${NC}"
