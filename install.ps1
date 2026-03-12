@@ -122,7 +122,8 @@ function Select-BestProxy {
 
 function Select-FallbackProxy {
     param(
-        [Parameter(Mandatory=$true)][string]$ChosenPrefix,
+        # 允许空字符串：当最优线路为 direct 时 Prefix=''，依然需要选择一个备用线路
+        [Parameter(Mandatory=$true)][AllowEmptyString()][string]$ChosenPrefix,
         [int]$Tries = 1
     )
 
