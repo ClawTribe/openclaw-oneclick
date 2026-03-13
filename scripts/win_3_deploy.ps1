@@ -113,34 +113,49 @@ try {
     # 1. 强制以淘宝源挂载全局 (OpenClaw 原生核心命令) - 位于主目录
     Set-Location $global:InstallDir
     Write-Color "   ➤ 正在注册 OpenClaw 核心命令..." "Gray"
+    Write-Color "   ➤ 工作目录: $global:InstallDir" "Gray"
+    Write-Color "   ➤ NPM 镜像: $global:NpmRegistry" "Gray"
     
     # 使用 cmd /c 来确保 npm 正确执行，并捕获退出码
-    $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent 2>&1"
-    $output = cmd /c $npmCmd
+    # 先重置 LASTEXITCODE
+    $LASTEXITCODE = $null
+    $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent"
+    Write-Color "   ➤ 执行命令: $npmCmd" "Gray"
+    
+    $output = cmd /c $npmCmd 2>&1
     $exitCode = $LASTEXITCODE
     
-    if ($exitCode -ne 0) {
+    Write-Color "   ➤ 原始输出: $output" "Gray"
+    Write-Color "   ➤ 退出码: $exitCode (LASTEXITCODE: $LASTEXITCODE)" "Gray"
+    
+    if ($exitCode -and $exitCode -ne 0) {
          # 不因核心错误中断向导
          Write-Color "   ⚠ OpenClaw 底层服务注册未能全量成功 (ExitCode: $exitCode)，但不影响交互向导。" "Yellow"
-         if ($output) { Write-Color "     详情: $output" "Gray" }
     } else {
          Write-Color "   ✓ OpenClaw 核心命令已注册" "Green"
     }
 
     # 2. 强制重新以淘宝源挂载全局 (一键向导组件) - 位于寄生子目录
     $oneclickDir = Join-Path $global:InstallDir "openclaw_oneclick"
+    Write-Color "   ➤ 检查目录: $oneclickDir" "Gray"
     if (Test-Path $oneclickDir) {
         Set-Location $oneclickDir
         Write-Color "   ➤ 正在注册 openclaw-setup 向导..." "Gray"
         
-        $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent 2>&1"
-        $output = cmd /c $npmCmd
+        # 先重置 LASTEXITCODE
+        $LASTEXITCODE = $null
+        $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent"
+        Write-Color "   ➤ 执行命令: $npmCmd" "Gray"
+        
+        $output = cmd /c $npmCmd 2>&1
         $exitCode = $LASTEXITCODE
         
-        if ($exitCode -ne 0) {
+        Write-Color "   ➤ 原始输出: $output" "Gray"
+        Write-Color "   ➤ 退出码: $exitCode (LASTEXITCODE: $LASTEXITCODE)" "Gray"
+        
+        if ($exitCode -and $exitCode -ne 0) {
             Write-Color "   ⚠ openclaw-setup 注册失败 (ExitCode: $exitCode)，但不影响核心功能。" "Yellow"
             Write-Color "     如需使用配置向导，请尝试以管理员身份运行安装。" "Yellow"
-            if ($output) { Write-Color "     详情: $output" "Gray" }
         } else {
             Write-Color "   ✓ openclaw-setup 向导已注册" "Green"
         }

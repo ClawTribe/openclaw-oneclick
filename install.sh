@@ -17,7 +17,7 @@ log() {
 }
 
 # --- 基础配置变量 ---
-export VERSION="3.3.16"
+export VERSION="3.3.17"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"

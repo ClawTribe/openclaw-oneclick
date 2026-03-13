@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.16'
+$global:Version = '3.3.17'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -336,8 +336,19 @@ try {
             & openclaw gateway restart
             $gatewayExitCode = $LASTEXITCODE
 
+            # 检查网关是否已经在运行（端口 18789 是否被监听）
+            $gatewayRunning = $false
+            try {
+                $listener = [System.Net.Sockets.TcpListener]::new([System.Net.IPAddress]::Loopback, 18789)
+                $listener.Start()
+                $listener.Stop()
+            } catch {
+                # 端口被占用，说明网关已经在运行
+                $gatewayRunning = $true
+            }
+
             # 若未安装服务，restart 可能失败；则尝试用后台方式启动 gateway run
-            if ($gatewayExitCode -ne 0 -and $gatewayExitCode -ne $null) {
+            if (($gatewayExitCode -ne 0 -and $gatewayExitCode -ne $null) -and -not $gatewayRunning) {
                 Write-Color "⚠ 网关服务重启失败（ExitCode=$gatewayExitCode），尝试后台启动：openclaw gateway run" "Yellow"
                 $openclawExe = (Get-Command openclaw -ErrorAction SilentlyContinue).Source
                 if ($openclawExe) {
@@ -345,6 +356,8 @@ try {
                     # 给后台进程一点启动时间
                     Start-Sleep -Seconds 2
                 }
+            } elseif ($gatewayRunning) {
+                Write-Color "✓ 网关已在运行（端口 18789 已被占用）" "Green"
             }
             
             Write-Color "➤ 正在打开控制台..." "Gray"
@@ -355,8 +368,6 @@ try {
             Write-Color "  下一步：在终端运行 openclaw-setup 配置大模型与飞书（可重复运行修改配置）。" "Cyan"
         } catch {
             Write-Color "`n⚠ 自动初始化过程中出现问题，您可以手动运行以下命令：" "Yellow"
-            Write-Color "  openclaw onboard --install-daemon" "Cyan"
-            Write-Color "  openclaw gateway restart" "Cyan"
             Write-Color "  openclaw dashboard" "Cyan"
             Write-Color "  openclaw-setup  # 配置大模型与飞书" "Cyan"
         }
