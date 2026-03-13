@@ -100,13 +100,15 @@ async function configModel() {
     log('╚═══════════════════════════════════════╝', 'cyan');
     console.log('');
 
-    // 支持的供应商
+    // 支持的供应商（模型 ID 格式参考 https://docs.openclaw.ai）
     const providers = [
-        { id: 'zai', name: '✨ 智谱 AI (GLM)', models: ['glm-4-flash', 'glm-4-plus', 'glm-4v-flash'] },
-        { id: 'qwen', name: '🚀 通义千问 (Qwen)', models: ['qwen-turbo', 'qwen-plus', 'qwen-max'] },
-        { id: 'deepseek', name: '🧠 DeepSeek', models: ['deepseek-chat', 'deepseek-coder'] },
-        { id: 'moonshot', name: '🌙 月之暗面 (Kimi)', models: ['kimi-chat'] },
-        { id: 'minimax', name: '🎨 MiniMax', models: ['abab6.5s-chat'] }
+        { id: 'zai', name: '✨ 智谱 AI (GLM)', models: ['glm-4.7-flash', 'glm-4-flash', 'glm-4.6v-flash', 'glm-4.7', 'glm-5'], prefix: 'zai/', envKey: 'ZAI_API_KEY' },
+        { id: 'qwen', name: '🚀 通义千问 (Qwen)', models: ['qwen-turbo', 'qwen-plus', 'qwen-max', 'qwen-coder'], prefix: 'qwen/', envKey: 'QWEN_API_KEY' },
+        { id: 'deepseek', name: '🧠 DeepSeek', models: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner'], prefix: 'deepseek/', envKey: 'DEEPSEEK_API_KEY' },
+        { id: 'moonshot', name: '🌙 月之暗面 (Kimi)', models: ['kimi-k2.5', 'kimi-k2-0905-preview', 'kimi-k2-turbo-preview', 'kimi-k2-thinking', 'kimi-k2-thinking-turbo'], prefix: 'moonshot/', envKey: 'MOONSHOT_API_KEY' },
+        { id: 'minimax', name: '🎨 MiniMax', models: ['MiniMax-M2.5', 'MiniMax-M2.5-highspeed'], prefix: 'minimax/', envKey: 'MINIMAX_API_KEY' },
+        { id: 'xiaomi', name: '📱 小米 (MiMo)', models: ['mimo-v2-flash'], prefix: 'xiaomi/', envKey: 'XIAOMI_API_KEY' },
+        { id: 'custom', name: '🔧 自定义 API (兼容 OpenAI)', models: [], isCustom: true }
     ];
 
     // 显示供应商列表
@@ -118,7 +120,7 @@ async function configModel() {
     console.log('');
     log('  0. 🔙 返回主菜单', 'yellow');
 
-    const pChoice = await ask('请选择 (0-5): ');
+    const pChoice = await ask('请选择 (0-6): ');
 
     if (pChoice === '0') return;
 
@@ -133,6 +135,65 @@ async function configModel() {
     console.log('');
     log(`已选择: ${provider.name}`, 'green');
     console.log('');
+
+    let model, apiKey, fullModelId;
+
+    // 自定义 API 处理
+    if (provider.isCustom) {
+        // 输入 Base URL
+        const baseUrl = await ask('请输入 API Base URL (例如 https://api.example.com/v1): ');
+        if (!baseUrl || baseUrl.trim() === '') {
+            log('Base URL 不能为空', 'red');
+            await ask('按回车键继续...');
+            return;
+        }
+        
+        // 输入 API Key
+        apiKey = await ask('请输入 API Key (输入后回车): ');
+        if (!apiKey || apiKey.trim() === '') {
+            log('API Key 不能为空', 'red');
+            await ask('按回车键继续...');
+            return;
+        }
+        
+        // 输入模型名称
+        model = await ask('请输入模型名称 (例如 gpt-4o, claude-3-sonnet): ');
+        if (!model || model.trim() === '') {
+            log('模型名称不能为空', 'red');
+            await ask('按回车键继续...');
+            return;
+        }
+        
+        // 保存自定义配置
+        const config = readConfig();
+        if (!config.env) config.env = {};
+        if (!config.models) config.models = {};
+        if (!config.models.providers) config.models.providers = {};
+        if (!config.agents) config.agents = {};
+        if (!config.agents.defaults) config.agents.defaults = {};
+        if (!config.agents.defaults.model) config.agents.defaults.model = {};
+        
+        config.env.OPENAI_API_KEY = apiKey.trim();
+        config.models.providers['custom-openai'] = {
+            baseUrl: baseUrl.trim(),
+            api: 'openai-responses',
+            auth: 'bearer',
+            models: [{ id: model.trim(), name: 'Custom Model' }]
+        };
+        config.agents.defaults.model.primary = 'custom-openai/' + model.trim();
+        
+        writeConfig(config);
+        
+        console.log('');
+        log('✓ 自定义 API 配置已保存！', 'green');
+        console.log('');
+        
+        const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
+        if (restart.toLowerCase() !== 'n') {
+            await restartGateway();
+        }
+        return;
+    }
 
     // 选择模型
     log('请选择模型:', 'bright');
@@ -149,34 +210,32 @@ async function configModel() {
         return;
     }
 
-    const model = provider.models[mIndex];
+    model = provider.models[mIndex];
     console.log('');
     log(`已选择模型: ${model}`, 'green');
     console.log('');
 
     // 输入 API Key
-    const apiKey = await ask('请输入 API Key (输入后回车): ');
+    apiKey = await ask('请输入 API Key (输入后回车): ');
     if (!apiKey || apiKey.trim() === '') {
         log('API Key 不能为空', 'red');
         await ask('按回车键继续...');
         return;
     }
 
-    // 保存配置
+    // 保存配置（使用 OpenClaw 规范格式）
     const config = readConfig();
     
-    // 根据不同供应商设置配置
-    if (provider.id === 'zai') {
-        config.model = { providers: { zai: { apiKey: apiKey.trim(), model: model } } };
-    } else if (provider.id === 'qwen') {
-        config.model = { providers: { qwen: { apiKey: apiKey.trim(), model: model } } };
-    } else if (provider.id === 'deepseek') {
-        config.model = { providers: { deepseek: { apiKey: apiKey.trim(), model: model } } };
-    } else if (provider.id === 'moonshot') {
-        config.model = { providers: { moonshot: { apiKey: apiKey.trim(), model: model } } };
-    } else if (provider.id === 'minimax') {
-        config.model = { providers: { minimax: { apiKey: apiKey.trim(), model: model } } };
-    }
+    // 确保必要结构存在
+    if (!config.env) config.env = {};
+    if (!config.agents) config.agents = {};
+    if (!config.agents.defaults) config.agents.defaults = {};
+    if (!config.agents.defaults.model) config.agents.defaults.model = {};
+    
+    // 根据不同供应商设置配置（模型 ID 格式：provider/model）
+    fullModelId = provider.prefix + model;
+    config.env[provider.envKey] = apiKey.trim();
+    config.agents.defaults.model.primary = fullModelId;
 
     writeConfig(config);
 
