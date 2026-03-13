@@ -105,17 +105,17 @@ Write-Color "   将 CLI 绑定到系统执行环境变量..." "Gray"
 try {
     # 1. 强制以淘宝源挂载全局 (OpenClaw 原生核心命令) - 位于主目录
     Set-Location $global:InstallDir
-    & npm install -g . --registry=$global:NpmRegistry --silent
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+    $process = Start-Process -FilePath "npm" -ArgumentList "install", "-g", ".", "--registry=$global:NpmRegistry", "--silent" -Wait -NoNewWindow -PassThru
+    if ($process.ExitCode -ne 0) {
          # 不因核心错误中断向导
          Write-Color "   ⚠ OpenClaw 底层服务注册未能全量成功，但不影响交互向导。" "Yellow"
     }
 
     # 2. 强制重新以淘宝源挂载全局 (一键向导组件) - 位于寄生子目录
     Set-Location (Join-Path $global:InstallDir "openclaw_oneclick")
-    & npm install -g . --registry=$global:NpmRegistry --silent
-    if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-        throw "npm ExitCode: $LASTEXITCODE (Setup API)"
+    $process = Start-Process -FilePath "npm" -ArgumentList "install", "-g", ".", "--registry=$global:NpmRegistry", "--silent" -Wait -NoNewWindow -PassThru
+    if ($process.ExitCode -ne 0) {
+        throw "npm ExitCode: $($process.ExitCode) (Setup API)"
     }
 } catch {
     Write-Color "❌ 绑定 openclaw-setup 失败。这通常意味着缺少最高权限，或者网络极度不稳。" "Red"
@@ -124,3 +124,6 @@ try {
 }
 
 Write-Color "   ✓ 交互面板与后台核心已完美激活挂载" "Green"
+
+# 确保成功退出时返回 0
+exit 0

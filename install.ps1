@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.13'
+$global:Version = '3.3.14'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -229,7 +229,10 @@ function Run-RemoteScript {
 
     try {
         & $tempScript
-        if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) { throw "Script exit code $LASTEXITCODE" }
+        $scriptExitCode = $LASTEXITCODE
+        if ($scriptExitCode -ne 0 -and $scriptExitCode -ne $null) {
+            throw "Script exit code $scriptExitCode"
+        }
     } catch {
         Write-Color "❌ 流程 $ScriptName 异常中断: $_" "Red"
         Remove-Item $tempScript -Force -ErrorAction SilentlyContinue
@@ -286,17 +289,30 @@ try {
                 Write-Color "⚠ 检测到非管理员权限，将跳过安装 Windows 服务（schtasks）。如需后台常驻，请用管理员方式运行 PowerShell。" "Yellow"
             }
 
+            # 保存原始参数，用于后续判断是否包含 --install-daemon
+            $originalOnboardArgs = $onboardArgs.Clone()
+
             & openclaw @onboardArgs
+            $onboardExitCode = $LASTEXITCODE
 
             # 如果安装服务失败（或其他原因），尝试降级：去掉 --install-daemon 再跑一遍
-            if (($LASTEXITCODE -ne 0) -and ($onboardArgs -contains "--install-daemon")) {
-                Write-Color "⚠ 初始化返回非 0（ExitCode=$LASTEXITCODE），尝试跳过服务安装并重试..." "Yellow"
-                $onboardArgs = $onboardArgs | Where-Object { $_ -ne "--install-daemon" }
+            if (($onboardExitCode -ne 0) -and ($originalOnboardArgs -contains "--install-daemon")) {
+                Write-Color "⚠ 初始化返回非 0（ExitCode=$onboardExitCode），尝试跳过服务安装并重试..." "Yellow"
+                $onboardArgs = $originalOnboardArgs | Where-Object { $_ -ne "--install-daemon" }
                 & openclaw @onboardArgs
+                $onboardExitCode = $LASTEXITCODE
             }
 
-            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-                throw "openclaw onboard failed (ExitCode=$LASTEXITCODE)"
+            # 检查 onboard 是否真正失败（退出码非 0 且非 null）
+            # 注意：某些情况下 openclaw 可能返回非零退出码但功能正常，这里放宽条件
+            if ($onboardExitCode -ne 0 -and $onboardExitCode -ne $null) {
+                # 检查 openclaw 是否真的安装成功（通过检查配置文件是否存在）
+                $openclawConfigPath = Join-Path $HOME ".openclaw" "openclaw.json"
+                if (Test-Path $openclawConfigPath) {
+                    Write-Color "⚠ onboard 返回退出码 $onboardExitCode，但检测到配置文件已生成，继续执行..." "Yellow"
+                } else {
+                    throw "openclaw onboard failed (ExitCode=$onboardExitCode)"
+                }
             }
             
             Write-Color "" "Gray"
@@ -305,13 +321,16 @@ try {
             
             Write-Color "➤ 正在启动/重启网关..." "Gray"
             & openclaw gateway restart
+            $gatewayExitCode = $LASTEXITCODE
 
             # 若未安装服务，restart 可能失败；则尝试用后台方式启动 gateway run
-            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
-                Write-Color "⚠ 网关服务重启失败，尝试后台启动：openclaw gateway run" "Yellow"
+            if ($gatewayExitCode -ne 0 -and $gatewayExitCode -ne $null) {
+                Write-Color "⚠ 网关服务重启失败（ExitCode=$gatewayExitCode），尝试后台启动：openclaw gateway run" "Yellow"
                 $openclawExe = (Get-Command openclaw -ErrorAction SilentlyContinue).Source
                 if ($openclawExe) {
                     Start-Process -FilePath $openclawExe -ArgumentList @("gateway","run") -WindowStyle Hidden | Out-Null
+                    # 给后台进程一点启动时间
+                    Start-Sleep -Seconds 2
                 }
             }
             

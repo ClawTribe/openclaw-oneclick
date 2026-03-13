@@ -53,3 +53,6 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 } else {
     Write-Color "   ✓ Git 引擎已就绪：$((git --version) -join ' ')" "Green"
 }
+
+# 确保成功退出时返回 0
+exit 0

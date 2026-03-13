@@ -72,3 +72,6 @@ if (Get-Command npm -ErrorAction SilentlyContinue) {
     Write-Color "❌ npm 包管理器缺失或未加入环境。" "Red"
     exit 1
 }
+
+# 确保成功退出时返回 0
+exit 0
