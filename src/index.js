@@ -173,14 +173,21 @@ async function configModel() {
         if (!config.agents.defaults) config.agents.defaults = {};
         if (!config.agents.defaults.model) config.agents.defaults.model = {};
         
+        // OpenClaw 配置规范（参考官方 docs）：
+        // - providers.<id>.apiKey / authHeader，而不是 auth: 'bearer'
+        // - models.mode 建议显式使用 merge，避免覆盖用户已有 providers
         config.env.OPENAI_API_KEY = apiKey.trim();
+        if (!config.models.mode) config.models.mode = 'merge';
+
+        const modelId = model.trim();
         config.models.providers['custom-openai'] = {
             baseUrl: baseUrl.trim(),
-            api: 'openai-responses',
-            auth: 'bearer',
-            models: [{ id: model.trim(), name: 'Custom Model' }]
+            apiKey: "${OPENAI_API_KEY}",
+            api: 'openai-completions',
+            authHeader: true,
+            models: [{ id: modelId, name: modelId }]
         };
-        config.agents.defaults.model.primary = 'custom-openai/' + model.trim();
+        config.agents.defaults.model.primary = 'custom-openai/' + modelId;
         
         writeConfig(config);
         
