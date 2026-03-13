@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.5'
+$global:Version = '3.3.6'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -57,7 +57,7 @@ function Invoke-Probe {
 
         $sw = [System.Diagnostics.Stopwatch]::StartNew()
         # 用 HEAD + 短超时做轻量探测；对 Release 用 Range 防止大流量
-        $resp = Invoke-WebRequest -Uri $Url -Method Head -Headers $headers -TimeoutSec 12 -UseBasicParsing -ErrorAction Stop
+        $resp = Invoke-WebRequest -Uri $Url -Method Head -Headers $headers -TimeoutSec 5 -UseBasicParsing -ErrorAction Stop
         $sw.Stop()
 
         $code = [int]$resp.StatusCode
@@ -99,9 +99,9 @@ function Score-Proxy {
 }
 
 function Select-BestProxy {
-    param([int]$Tries = 2)
+    param([int]$Tries = 1)
 
-    Write-Color "➤ 正在测速可用加速源（每次运行都会自动选择最优线路）..." "Yellow"
+    Write-Color "➤ 正在测试Openclaw可用加速源..." "Yellow"
 
     $best = $null
     foreach ($c in $global:ProxyCandidates) {
@@ -142,7 +142,7 @@ function Select-FallbackProxy {
     return $best
 }
 
-$best = Select-BestProxy -Tries 2
+$best = Select-BestProxy -Tries 1
 $fallback = Select-FallbackProxy -ChosenPrefix $best.Prefix -Tries 1
 
 # 默认首选加速源（兼容旧变量命名）
@@ -163,7 +163,7 @@ $global:NpmRegistry = 'https://registry.npmmirror.com'
 
 Write-Color "`n──────────────────────────────────────────────────" "Cyan"
 Write-Color "  🚀 OpenClaw 环境管家 (Windows)" "Cyan"
-Write-Color "  正在为您进行全自动环境梳理与云端部署..." "Cyan"
+Write-Color "  正在为您进行全自动环境梳理与部署..." "Cyan"
 Write-Color "──────────────────────────────────────────────────`n" "Cyan"
 
 # 预检：磁盘空间 (至少 500MB)

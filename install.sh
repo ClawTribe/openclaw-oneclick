@@ -17,7 +17,7 @@ log() {
 }
 
 # --- 基础配置变量 ---
-export VERSION="3.3.5"
+export VERSION="3.3.6"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
@@ -67,14 +67,16 @@ release_test_url_for_prefix() {
   echo "${prefix}${rel_path}"
 }
 
+# 快速探测：缩短超时，优先快速失败
 curl_probe() {
   local url="$1"
   local header="$2"
   # 输出：<http_code> <time_total>
+  # 调整：connect 2s + max 5s = 最长 7s 必须返回（原来 15s）
   if [ -n "$header" ]; then
-    curl -sS -L --connect-timeout 3 --max-time 12 -o /dev/null -H "$header" -w "%{http_code} %{time_total}" "$url" 2>/dev/null || echo "000 999"
+    curl -sS -L --connect-timeout 2 --max-time 5 -o /dev/null -H "$header" -w "%{http_code} %{time_total}" "$url" 2>/dev/null || echo "000 999"
   else
-    curl -sS -L --connect-timeout 3 --max-time 12 -o /dev/null -w "%{http_code} %{time_total}" "$url" 2>/dev/null || echo "000 999"
+    curl -sS -L --connect-timeout 2 --max-time 5 -o /dev/null -w "%{http_code} %{time_total}" "$url" 2>/dev/null || echo "000 999"
   fi
 }
 
@@ -137,8 +139,7 @@ select_best_proxy() {
   local best_ok=-1
   local best_avg=999
 
-  log "${YELLOW}➤ 正在测速可用加速源（每次运行都会自动选择最优线路）...${NC}"
-  log "   ${YELLOW}提示：可设置 OPENCLAW_VERBOSE_PROXY_TEST=1 打印更详细日志${NC}"
+  log "${YELLOW}➤ 正在测试Openclaw可用加速源...${NC}"
 
   # 两阶段：先用 1 次探测筛掉明显不可用的，再对候选进行更准确的多次测量。
   local quick_tries=1
@@ -173,7 +174,7 @@ select_best_proxy() {
   fi
 
   # 按 avg 从小到大排序，取前 4 个做 deep
-  IFS=$'\n' deep_candidates=($(printf '%s\n' "${deep_candidates[@]}" | sort -t'|' -k5,5n | head -n 4))
+  IFS=$'\n' deep_candidates=($(printf '%s\n' "${deep_candidates[@]}" | sort -t'|' -k5,5n | head -n 2))
   unset IFS
 
   log "${YELLOW}➤ 正在对候选线路做二次确认...${NC}"
@@ -239,7 +240,7 @@ pick_fallback_proxy() {
   fi
 }
 
-BEST_LINE="$(select_best_proxy 2)"
+BEST_LINE="$(select_best_proxy 1)"
 BEST_NAME="$(echo "$BEST_LINE" | awk -F'|' '{print $1}')"
 BEST_PREFIX="$(echo "$BEST_LINE" | awk -F'|' '{print $2}')"
 
@@ -266,7 +267,7 @@ export NPM_REGISTRY="https://registry.npmmirror.com"
 echo -e "${CYAN}
 ──────────────────────────────────────────────────
   🚀 OpenClaw 环境管家 (macOS / Linux)
-  正在为您进行全自动环境梳理与云端部署...
+  正在为您进行全自动环境梳理部署...
 ──────────────────────────────────────────────────
 ${NC}"
 
