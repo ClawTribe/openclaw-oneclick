@@ -279,12 +279,18 @@ async function configFeishu() {
     // 保存配置
     const config = readConfig();
     
-    // 设置飞书配置
+    // 设置飞书配置（使用 pairing 模式，用户需配对后才能使用）
     if (!config.channels) config.channels = {};
     config.channels.feishu = {
         enabled: true,
-        appId: appId.trim(),
-        appSecret: appSecret.trim()
+        dmPolicy: "pairing",
+        accounts: {
+            main: {
+                appId: appId.trim(),
+                appSecret: appSecret.trim(),
+                botName: "OpenClaw AI 助手"
+            }
+        }
     };
     
     if (verificationToken && verificationToken.trim()) {
@@ -295,6 +301,13 @@ async function configFeishu() {
 
     console.log('');
     log('✓ 飞书配置已保存！', 'green');
+    console.log('');
+    
+    log('⚠️ 重要：用户配对后，您需要批准配对请求', 'yellow');
+    console.log('   用户发送消息后会收到配对码，格式如：');
+    console.log('   "Ask the bot owner to approve with: openclaw pairing approve feishu XXXXXX"');
+    console.log('   您需要运行以下命令批准：');
+    console.log('   openclaw pairing approve feishu <配对码>');
     console.log('');
 
     const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
