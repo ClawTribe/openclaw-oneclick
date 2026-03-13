@@ -403,11 +403,13 @@ if openclaw onboard --non-interactive \
   
   echo -e "\n${GREEN}✓ 初始化完成！${NC}"
   echo -e "${GREEN}  您现在可以在浏览器中访问控制台了。${NC}"
+  echo -e "${CYAN}  下一步：在终端运行 openclaw-setup 配置大模型与飞书（可重复运行修改配置）。${NC}"
 else
   echo -e "\n${YELLOW}⚠ 自动初始化过程中出现问题，您可以手动运行以下命令：${NC}"
   echo -e "${CYAN}  openclaw onboard --install-daemon${NC}"
   echo -e "${CYAN}  openclaw gateway restart${NC}"
   echo -e "${CYAN}  openclaw dashboard${NC}"
+  echo -e "${CYAN}  openclaw-setup  # 配置大模型与飞书${NC}"
 fi
 
 # 尝试生成 shell 补全缓存，避免用户的 ~/.zshrc source 到不存在的 openclaw.zsh 时报错

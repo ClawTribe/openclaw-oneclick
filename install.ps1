@@ -320,11 +320,13 @@ try {
             
             Write-Color "`n✓ 初始化完成！" "Green"
             Write-Color "  您现在可以在浏览器中访问控制台了。" "Green"
+            Write-Color "  下一步：在终端运行 openclaw-setup 配置大模型与飞书（可重复运行修改配置）。" "Cyan"
         } catch {
             Write-Color "`n⚠ 自动初始化过程中出现问题，您可以手动运行以下命令：" "Yellow"
             Write-Color "  openclaw onboard --install-daemon" "Cyan"
             Write-Color "  openclaw gateway restart" "Cyan"
             Write-Color "  openclaw dashboard" "Cyan"
+            Write-Color "  openclaw-setup  # 配置大模型与飞书" "Cyan"
         }
     }
 } finally {
