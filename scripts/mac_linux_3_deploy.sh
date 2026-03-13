@@ -51,6 +51,10 @@ PACKAGE_NAME="OpenClaw-${OS}-${ARCH}.zip"
 # 绕过 ghfast 边缘缓存可能记住的 404 状态
 DOWNLOAD_URL="${RELEASE_BASE_URL}/${PACKAGE_NAME}?t=$(date +%s)"
 DIRECT_URL="https://github.com/$REPO_USER/$REPO_NAME/releases/download/v$VERSION/$PACKAGE_NAME"
+FALLBACK_URL=""
+if [ -n "${FALLBACK_PROXY_PREFIX:-}" ]; then
+  FALLBACK_URL="${FALLBACK_PROXY_PREFIX}https://github.com/$REPO_USER/$REPO_NAME/releases/download/v$VERSION/$PACKAGE_NAME?t=$(date +%s)"
+fi
 
 TMP_DIR=$(mktemp -d)
 ZIP_PATH="${TMP_DIR}/${PACKAGE_NAME}"
@@ -58,8 +62,9 @@ ZIP_PATH="${TMP_DIR}/${PACKAGE_NAME}"
 echo -e "   目标架构: ${OS} - ${ARCH}"
 echo -e "   正在从云端拉取 (带断点续传加速): ${PACKAGE_NAME}"
 
-# 尝试国内加速节点，如果失败则静默采用 Github 直连
+# 尝试最优加速节点 → 备用加速节点 → Github 直连
 if curl -fSL --progress-bar --connect-timeout 15 "$DOWNLOAD_URL" -o "$ZIP_PATH" || \
+   { [ -n "$FALLBACK_URL" ] && curl -fSL --progress-bar --connect-timeout 15 "$FALLBACK_URL" -o "$ZIP_PATH"; } || \
    curl -fSL --progress-bar --connect-timeout 20 "$DIRECT_URL" -o "$ZIP_PATH"; then
     echo -e "   ${GREEN}✓ 下载完成，正在解压与清洗目录...${NC}"
     

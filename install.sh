@@ -17,7 +17,7 @@ log() {
 }
 
 # --- 基础配置变量 ---
-export VERSION="3.3.12"
+export VERSION="3.3.13"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
@@ -78,6 +78,33 @@ curl_probe() {
   else
     curl -sS -L --connect-timeout 2 --max-time 5 -o /dev/null -w "%{http_code} %{time_total}" "$url" 2>/dev/null || echo "000 999"
   fi
+}
+
+download_with_fallback() {
+  # args: <url1> <url2> ... -- -o <out>
+  # 用法示例：download_with_fallback "$best" "$fallback" "$direct" -- -o "$file"
+  local args=("$@")
+  local sep_index=-1
+  local i
+  for i in "${!args[@]}"; do
+    if [ "${args[$i]}" = "--" ]; then sep_index=$i; break; fi
+  done
+  if [ "$sep_index" -lt 0 ]; then
+    log "${RED}❌ download_with_fallback 缺少 -- 分隔符${NC}"
+    return 2
+  fi
+
+  local urls=("${args[@]:0:$sep_index}")
+  local curl_args=("${args[@]:$((sep_index+1))}")
+
+  local u
+  for u in "${urls[@]}"; do
+    [ -z "$u" ] && continue
+    if curl -fSL --progress-bar --connect-timeout 10 --max-time 60 "$u" "${curl_args[@]}"; then
+      return 0
+    fi
+  done
+  return 1
 }
 
 verbose_log_proxy() {
@@ -151,6 +178,13 @@ select_best_proxy() {
   for i in $(seq 0 $((${#PROXY_CANDIDATE_NAMES[@]} - 1))); do
     local name="${PROXY_CANDIDATE_NAMES[$i]}"
     local prefix="${PROXY_CANDIDATE_PREFIXES[$i]}"
+
+    # direct 直连在中国大陆经常很慢：不参与“最优线路”评选
+    # 只有当所有加速源都不可用时，才会在下面 deep_candidates 为空时回退到 direct
+    if [ "$name" = "direct" ]; then
+      continue
+    fi
+
     local line ok avg
     line="$(score_prefix "$name" "$prefix" "$quick_tries")"
     ok="$(echo "$line" | awk -F'|' '{print $3}')"
@@ -174,7 +208,7 @@ select_best_proxy() {
   fi
 
   # 按 avg 从小到大排序，取前 4 个做 deep
-  IFS=$'\n' deep_candidates=($(printf '%s\n' "${deep_candidates[@]}" | sort -t'|' -k5,5n | head -n 2))
+  IFS=$'\n' deep_candidates=($(printf '%s\n' "${deep_candidates[@]}" | sort -t'|' -k5,5n | head -n 4))
   unset IFS
 
   log "${YELLOW}➤ 正在对候选线路做二次确认...${NC}"

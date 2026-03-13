@@ -22,6 +22,11 @@ $PackageName = "OpenClaw-Windows-$Arch.zip"
 $DownloadUrl = "$global:ReleaseBaseUrl/$PackageName"
 $ZipPath = Join-Path $tempDir $PackageName
 
+$FallbackUrl = $null
+if ($global:FallbackProxyPrefix) {
+    $FallbackUrl = $global:FallbackProxyPrefix + "https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version/$PackageName?t=" + [guid]::NewGuid().ToString()
+}
+
 Write-Color "   ➤ 云端计算节点: Windows - $Arch" "Cyan"
 Write-Color "   ➤ 隧道下载中: $PackageName" "Gray"
 
@@ -33,9 +38,21 @@ try {
     if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
         $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "15", "$DownloadUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
         if ($p.ExitCode -ne 0) {
-            Write-Color "   ⚠ 加速节点超时，尝试从 GitHub 源站直连..." "Yellow"
-            $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
-            if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
+            if ($FallbackUrl) {
+                Write-Color "   ⚠ 最优加速节点超时，尝试备用加速节点..." "Yellow"
+                $p1 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "20", "$FallbackUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                if ($p1.ExitCode -eq 0) {
+                    Write-Color "   ✓ 已通过备用加速节点完成下载" "Green"
+                } else {
+                    Write-Color "   ⚠ 备用加速节点也失败，尝试从 GitHub 源站直连..." "Yellow"
+                    $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                    if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
+                }
+            } else {
+                Write-Color "   ⚠ 加速节点超时，尝试从 GitHub 源站直连..." "Yellow"
+                $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
+            }
         }
     } else {
         $ProgressPreference = 'SilentlyContinue'

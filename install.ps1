@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.12'
+$global:Version = '3.3.13'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -105,6 +105,9 @@ function Select-BestProxy {
 
     $best = $null
     foreach ($c in $global:ProxyCandidates) {
+        # direct 直连在中国大陆经常很慢：不参与“最优线路”评选
+        # 只有当所有加速源都不可用时才会回退到 direct（由后续脚本拉取/下载逻辑兜底）
+        if ($c.Name -eq 'direct') { continue }
         $s = Score-Proxy -Candidate $c -Tries $Tries
         Write-Color ("   - {0}: ok={1}/{2} avg={3}s" -f $s.Name, $s.Ok, $s.Total, $s.Avg) "Cyan"
 

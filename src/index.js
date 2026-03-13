@@ -301,13 +301,29 @@ async function configFeishu() {
     // 保存配置
     const config = readConfig();
     
-    // 设置飞书配置（使用 pairing 模式，用户需配对后才能使用）
+    // 设置飞书配置（尽量贴近 OpenClaw 新版推荐结构）
+    // - 单账号配置放在 channels.feishu.accounts.default（避免 doctor 迁移提示）
+    // - 同时写入一些常用默认值（open/websocket/requireMention 等），避免用户落坑
     if (!config.channels) config.channels = {};
-    // OpenClaw Doctor 提示：单账号配置需要放在 channels.feishu.accounts.default 下
-    // 避免生成旧格式导致每次都提示 doctor --fix
     config.channels.feishu = {
         enabled: true,
-        dmPolicy: "pairing",
+        domain: "feishu",
+
+        // 访问控制
+        dmPolicy: "open",
+        groupPolicy: "open",
+        allowFrom: ["*"],
+
+        // 行为偏好
+        connectionMode: "websocket",
+        ackReaction: "👀",
+        requireMention: true,
+        groupCommandMentionBypass: "never",
+
+        // 兼容：部分版本会读取单账号 top-level appId/appSecret
+        appId: appId.trim(),
+        appSecret: appSecret.trim(),
+
         accounts: {
             default: {
                 appId: appId.trim(),
