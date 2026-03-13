@@ -157,7 +157,10 @@ async function configModel() {
         }
         
         // 输入模型名称
-        model = await ask('请输入模型名称 (例如 gpt-4o, claude-3-sonnet): ');
+        // 允许两种写法：
+        // - 仅模型：qwen3.5-plus
+        // - 带供应商前缀：bailian/qwen3.5-plus（会把 bailian 作为 providerId）
+        model = await ask('请输入模型名称 (例如 qwen3.5-plus 或 bailian/qwen3.5-plus): ');
         if (!model || model.trim() === '') {
             log('模型名称不能为空', 'red');
             await ask('按回车键继续...');
@@ -179,15 +182,27 @@ async function configModel() {
         config.env.OPENAI_API_KEY = apiKey.trim();
         if (!config.models.mode) config.models.mode = 'merge';
 
-        const modelId = model.trim();
-        config.models.providers['custom-openai'] = {
+        // 如果用户输入了 providerId/modelId（如 bailian/qwen3.5-plus），则：
+        // - providerId 取第一个片段 bailian
+        // - modelId 取剩余部分 qwen3.5-plus（支持未来模型名里包含 / 的情况）
+        const rawModelInput = model.trim();
+        const segs = rawModelInput.split('/').filter(Boolean);
+        const providerId = segs.length >= 2 ? segs.shift() : 'custom-openai';
+        const modelId = segs.length >= 1 ? segs.join('/') : rawModelInput;
+
+        // 如果从 custom-openai 迁移到其它 providerId（例如 bailian），清理旧 key，避免用户误用
+        if (providerId !== 'custom-openai' && config.models.providers['custom-openai']) {
+            delete config.models.providers['custom-openai'];
+        }
+
+        config.models.providers[providerId] = {
             baseUrl: baseUrl.trim(),
             apiKey: "${OPENAI_API_KEY}",
             api: 'openai-completions',
             authHeader: true,
             models: [{ id: modelId, name: modelId }]
         };
-        config.agents.defaults.model.primary = 'custom-openai/' + modelId;
+        config.agents.defaults.model.primary = providerId + '/' + modelId;
         
         writeConfig(config);
         
@@ -288,11 +303,13 @@ async function configFeishu() {
     
     // 设置飞书配置（使用 pairing 模式，用户需配对后才能使用）
     if (!config.channels) config.channels = {};
+    // OpenClaw Doctor 提示：单账号配置需要放在 channels.feishu.accounts.default 下
+    // 避免生成旧格式导致每次都提示 doctor --fix
     config.channels.feishu = {
         enabled: true,
         dmPolicy: "pairing",
         accounts: {
-            main: {
+            default: {
                 appId: appId.trim(),
                 appSecret: appSecret.trim(),
                 botName: "OpenClaw AI 助手"

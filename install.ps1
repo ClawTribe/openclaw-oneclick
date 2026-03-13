@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.11'
+$global:Version = '3.3.12'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -258,15 +258,59 @@ try {
             $randomToken = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 12 | ForEach-Object {[char]$_})
             
             Write-Color "➤ 正在执行非交互式初始化..." "Gray"
-            $initCmd = "openclaw onboard --non-interactive --accept-risk --mode local --gateway-auth token --gateway-token `"$randomToken`" --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills"
-            Invoke-Expression $initCmd
+            # Windows 上 --install-daemon 会调用 schtasks 创建计划任务，通常需要管理员权限。
+            # 若非管理员权限，直接跳过安装服务，避免出现 schtasks create failed。
+            $isAdmin = $false
+            try {
+                $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+            } catch { $isAdmin = $false }
+
+            $onboardArgs = @(
+                "onboard",
+                "--non-interactive",
+                "--accept-risk",
+                "--mode", "local",
+                "--gateway-auth", "token",
+                "--gateway-token", $randomToken,
+                "--gateway-port", "18789",
+                "--gateway-bind", "loopback",
+                "--skip-skills"
+            )
+
+            if ($isAdmin) {
+                $onboardArgs += "--install-daemon"
+            } else {
+                Write-Color "⚠ 检测到非管理员权限，将跳过安装 Windows 服务（schtasks）。如需后台常驻，请用管理员方式运行 PowerShell。" "Yellow"
+            }
+
+            & openclaw @onboardArgs
+
+            # 如果安装服务失败（或其他原因），尝试降级：去掉 --install-daemon 再跑一遍
+            if (($LASTEXITCODE -ne 0) -and ($onboardArgs -contains "--install-daemon")) {
+                Write-Color "⚠ 初始化返回非 0（ExitCode=$LASTEXITCODE），尝试跳过服务安装并重试..." "Yellow"
+                $onboardArgs = $onboardArgs | Where-Object { $_ -ne "--install-daemon" }
+                & openclaw @onboardArgs
+            }
+
+            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+                throw "openclaw onboard failed (ExitCode=$LASTEXITCODE)"
+            }
             
             Write-Color "" "Gray"
             Write-Color "⚠ 初始化命令已执行，如果控制台未自动打开，请按回车键继续..." "Yellow"
             $null = $Host.UI.ReadLine()
             
-            Write-Color "➤ 正在重启网关..." "Gray"
-            openclaw gateway restart
+            Write-Color "➤ 正在启动/重启网关..." "Gray"
+            & openclaw gateway restart
+
+            # 若未安装服务，restart 可能失败；则尝试用后台方式启动 gateway run
+            if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
+                Write-Color "⚠ 网关服务重启失败，尝试后台启动：openclaw gateway run" "Yellow"
+                $openclawExe = (Get-Command openclaw -ErrorAction SilentlyContinue).Source
+                if ($openclawExe) {
+                    Start-Process -FilePath $openclawExe -ArgumentList @("gateway","run") -WindowStyle Hidden | Out-Null
+                }
+            }
             
             Write-Color "➤ 正在打开控制台..." "Gray"
             openclaw dashboard
