@@ -258,7 +258,7 @@ try {
             $randomToken = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 12 | ForEach-Object {[char]$_})
             
             Write-Color "➤ 正在执行非交互式初始化..." "Gray"
-            $initCmd = "openclaw onboard --non-interactive --accept-risk --mode local --gateway-auth token --gateway-token `"$randomToken`" --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills"
+            $initCmd = "openclaw onboard --non-interactive --yes --accept-risk --mode local --gateway-auth token --gateway-token `"$randomToken`" --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills"
             Invoke-Expression $initCmd
             
             Write-Color "➤ 正在重启网关..." "Gray"
