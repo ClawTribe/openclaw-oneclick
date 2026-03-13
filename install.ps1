@@ -246,12 +246,40 @@ try {
     Run-RemoteScript "win_3_deploy.ps1"
     
     $global:Success = $true
+    
+    # 自动执行初始化和启动
+    if ($global:Success) {
+        Write-Color "`n──────────────────────────────────────────────────" "Cyan"
+        Write-Color "  🚀 正在自动完成初始化配置..." "Cyan"
+        Write-Color "──────────────────────────────────────────────────`n" "Cyan"
+        
+        try {
+            # 生成随机 token (12位字母数字)
+            $randomToken = -join ((65..90) + (97..122) + (48..57) | Get-Random -Count 12 | ForEach-Object {[char]$_})
+            
+            Write-Color "➤ 正在执行非交互式初始化..." "Gray"
+            $initCmd = "openclaw onboard --non-interactive --accept-risk --mode local --gateway-auth token --gateway-token `"$randomToken`" --gateway-port 18789 --gateway-bind loopback --install-daemon --skip-skills"
+            Invoke-Expression $initCmd
+            
+            Write-Color "➤ 正在重启网关..." "Gray"
+            openclaw gateway restart
+            
+            Write-Color "➤ 正在打开控制台..." "Gray"
+            openclaw dashboard
+            
+            Write-Color "`n✓ 初始化完成！" "Green"
+            Write-Color "  您现在可以在浏览器中访问控制台了。" "Green"
+        } catch {
+            Write-Color "`n⚠ 自动初始化过程中出现问题，您可以手动运行以下命令：" "Yellow"
+            Write-Color "  openclaw onboard --install-daemon" "Cyan"
+            Write-Color "  openclaw gateway restart" "Cyan"
+            Write-Color "  openclaw dashboard" "Cyan"
+        }
+    }
 } finally {
     Write-Color "`n──────────────────────────────────────────────────" "Cyan"
     if ($global:Success) {
-        Write-Color "✓ OpenClaw 已成功部署！" "Green"
-        Write-Color "  为确保后续无痛体验，请关闭此窗口并[重新打开一个全新 PowerShell]，然后运行：" "Yellow"
-        Write-Color "  openclaw onboard --install-daemon" "Cyan"
+        Write-Color "✓ OpenClaw 已成功部署并完成初始化！" "Green"
     } else {
         Write-Color "⚠ 安装未完全成功。请翻看上方的红色错误日志。" "Yellow"
     }

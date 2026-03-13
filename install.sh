@@ -338,7 +338,39 @@ run_remote_script "mac_linux_2_node.sh"
 # 流程 3: 下载与解包 OpenClaw 预编译 Zip 包
 run_remote_script "mac_linux_3_deploy.sh"
 
+# 自动执行初始化和启动
+echo -e "\n${CYAN}──────────────────────────────────────────────────${NC}"
+echo -e "${CYAN}  🚀 正在自动完成初始化配置...${NC}"
+echo -e "${CYAN}──────────────────────────────────────────────────${NC}"
+
+# 生成随机 token (12位字母数字)
+RANDOM_TOKEN=$(openssl rand -base64 12 | tr -dc 'a-zA-Z0-9' | head -c 12)
+
+echo -e "➤ 正在执行非交互式初始化..."
+if openclaw onboard --non-interactive \
+  --accept-risk \
+  --mode local \
+  --gateway-auth token \
+  --gateway-token "$RANDOM_TOKEN" \
+  --gateway-port 18789 \
+  --gateway-bind loopback \
+  --install-daemon \
+  --skip-skills; then
+  echo -e "➤ 正在重启网关..."
+  openclaw gateway restart
+  
+  echo -e "➤ 正在打开控制台..."
+  openclaw dashboard
+  
+  echo -e "\n${GREEN}✓ 初始化完成！${NC}"
+  echo -e "${GREEN}  您现在可以在浏览器中访问控制台了。${NC}"
+else
+  echo -e "\n${YELLOW}⚠ 自动初始化过程中出现问题，您可以手动运行以下命令：${NC}"
+  echo -e "${CYAN}  openclaw onboard --install-daemon${NC}"
+  echo -e "${CYAN}  openclaw gateway restart${NC}"
+  echo -e "${CYAN}  openclaw dashboard${NC}"
+fi
+
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
-echo -e "${GREEN}✓ OpenClaw 部署成功！${NC}"
-echo -e "${YELLOW}运行 ${NC}${CYAN}openclaw onboard --install-daemon${NC}${YELLOW} 开始配置${NC}"
+echo -e "${GREEN}✓ OpenClaw 已成功部署并完成初始化！${NC}"
 echo -e "${GREEN}──────────────────────────────────────────────────${NC}"
