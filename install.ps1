@@ -234,7 +234,11 @@ function Run-RemoteScript {
         $LASTEXITCODE = $null
         
         & $tempScript
-        $scriptExitCode = if ($LASTEXITCODE -ne $null) { $LASTEXITCODE } else { $? ? 0 : 1 }
+        if ($LASTEXITCODE -ne $null) {
+            $scriptExitCode = $LASTEXITCODE
+        } else {
+            $scriptExitCode = if ($?) { 0 } else { 1 }
+        }
         
         # 恢复原始退出码
         $LASTEXITCODE = $originalExitCode
