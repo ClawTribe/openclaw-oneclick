@@ -5,7 +5,7 @@ $ErrorActionPreference = 'Stop'
 $global:Success = $false
 
 # --- 基础配置变量 ---
-$global:Version = '3.3.9'
+$global:Version = '3.3.10'
 $global:RepoUser = 'ClawTribe'
 $global:RepoName = 'openclaw-oneclick'
 $global:InstallDir = Join-Path $HOME 'OpenClaw'
@@ -263,7 +263,7 @@ try {
             
             Write-Color "" "Gray"
             Write-Color "⚠ 初始化命令已执行，如果控制台未自动打开，请按回车键继续..." "Yellow"
-            $null = Host.UI.ReadLine()
+            $null = $Host.UI.ReadLine()
             
             Write-Color "➤ 正在重启网关..." "Gray"
             openclaw gateway restart

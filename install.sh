@@ -17,7 +17,7 @@ log() {
 }
 
 # --- 基础配置变量 ---
-export VERSION="3.3.9"
+export VERSION="3.3.10"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
@@ -375,6 +375,9 @@ else
   echo -e "${CYAN}  openclaw gateway restart${NC}"
   echo -e "${CYAN}  openclaw dashboard${NC}"
 fi
+
+# 清除 bash 命令缓存，防止缓存了安装前的空路径
+hash -r 2>/dev/null || true
 
 echo -e "\n${GREEN}──────────────────────────────────────────────────${NC}"
 echo -e "${GREEN}✓ OpenClaw 已成功部署并完成初始化！${NC}"
