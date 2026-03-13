@@ -228,8 +228,17 @@ function Run-RemoteScript {
     }
 
     try {
+        # 使用点源调用确保全局变量正确传递
+        # 先保存当前退出码，重置后再执行脚本，以便准确捕获子脚本的退出码
+        $originalExitCode = $LASTEXITCODE
+        $LASTEXITCODE = $null
+        
         & $tempScript
-        $scriptExitCode = $LASTEXITCODE
+        $scriptExitCode = if ($LASTEXITCODE -ne $null) { $LASTEXITCODE } else { $? ? 0 : 1 }
+        
+        # 恢复原始退出码
+        $LASTEXITCODE = $originalExitCode
+        
         if ($scriptExitCode -ne 0 -and $scriptExitCode -ne $null) {
             throw "Script exit code $scriptExitCode"
         }

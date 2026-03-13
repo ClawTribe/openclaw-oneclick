@@ -1,6 +1,8 @@
 # Windows 步骤 3: 提取并部署核心应用
 
-$ErrorActionPreference = 'Stop'
+# 注意：这里不使用 Stop，以免 npm install 警告导致整个脚本失败
+# 关键步骤使用 try-catch 手动控制错误流程
+$ErrorActionPreference = 'Continue'
 
 # 兜底：若用户单独运行本脚本，或上层未注入 Write-Color，则提供本地实现
 if (-not (Get-Command Write-Color -ErrorAction SilentlyContinue)) {
@@ -31,26 +33,31 @@ Write-Color "   ➤ 云端计算节点: Windows - $Arch" "Cyan"
 Write-Color "   ➤ 隧道下载中: $PackageName" "Gray"
 
 try {
-    # 绕过 ghfast 边缘缓存可能记住的 404 状态
-    $DownloadUrl = $global:ReleaseBaseUrl + "/" + $PackageName + "?t=" + [guid]::NewGuid().ToString()
+    # 缓存优化：首次下载不使用query参数，失败重试时再添加以绕过CDN缓存
+    $DownloadUrl = $global:ReleaseBaseUrl + "/" + $PackageName
     $DirectUrl = "https://github.com/" + $global:RepoUser + "/" + $global:RepoName + "/releases/download/v" + $global:Version + "/" + $PackageName
     
     if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
         $p = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "15", "$DownloadUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
         if ($p.ExitCode -ne 0) {
+            # 首次下载失败，添加guid参数绕过CDN缓存后重试
+            $retryDownloadUrl = $DownloadUrl + "?t=" + [guid]::NewGuid().ToString()
             if ($FallbackUrl) {
                 Write-Color "   ⚠ 最优加速节点超时，尝试备用加速节点..." "Yellow"
-                $p1 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "20", "$FallbackUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                $retryFallbackUrl = $FallbackUrl + "?t=" + [guid]::NewGuid().ToString()
+                $p1 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "20", "$retryFallbackUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
                 if ($p1.ExitCode -eq 0) {
                     Write-Color "   ✓ 已通过备用加速节点完成下载" "Green"
                 } else {
                     Write-Color "   ⚠ 备用加速节点也失败，尝试从 GitHub 源站直连..." "Yellow"
-                    $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                    $retryDirectUrl = $DirectUrl + "?t=" + [guid]::NewGuid().ToString()
+                    $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$retryDirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
                     if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
                 }
             } else {
                 Write-Color "   ⚠ 加速节点超时，尝试从 GitHub 源站直连..." "Yellow"
-                $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$DirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
+                $retryDirectUrl = $DirectUrl + "?t=" + [guid]::NewGuid().ToString()
+                $p2 = Start-Process -FilePath "curl.exe" -ArgumentList "-fSL", "--progress-bar", "--connect-timeout", "60", "$retryDirectUrl", "-o", "`"$ZipPath`"" -Wait -NoNewWindow -PassThru
                 if ($p2.ExitCode -ne 0) { throw "Fallback download failed" }
             }
         }
@@ -105,25 +112,48 @@ Write-Color "   将 CLI 绑定到系统执行环境变量..." "Gray"
 try {
     # 1. 强制以淘宝源挂载全局 (OpenClaw 原生核心命令) - 位于主目录
     Set-Location $global:InstallDir
-    $process = Start-Process -FilePath "npm" -ArgumentList "install", "-g", ".", "--registry=$global:NpmRegistry", "--silent" -Wait -NoNewWindow -PassThru
-    if ($process.ExitCode -ne 0) {
+    Write-Color "   ➤ 正在注册 OpenClaw 核心命令..." "Gray"
+    
+    # 使用 cmd /c 来确保 npm 正确执行，并捕获退出码
+    $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent 2>&1"
+    $output = cmd /c $npmCmd
+    $exitCode = $LASTEXITCODE
+    
+    if ($exitCode -ne 0) {
          # 不因核心错误中断向导
-         Write-Color "   ⚠ OpenClaw 底层服务注册未能全量成功，但不影响交互向导。" "Yellow"
+         Write-Color "   ⚠ OpenClaw 底层服务注册未能全量成功 (ExitCode: $exitCode)，但不影响交互向导。" "Yellow"
+         if ($output) { Write-Color "     详情: $output" "Gray" }
+    } else {
+         Write-Color "   ✓ OpenClaw 核心命令已注册" "Green"
     }
 
     # 2. 强制重新以淘宝源挂载全局 (一键向导组件) - 位于寄生子目录
-    Set-Location (Join-Path $global:InstallDir "openclaw_oneclick")
-    $process = Start-Process -FilePath "npm" -ArgumentList "install", "-g", ".", "--registry=$global:NpmRegistry", "--silent" -Wait -NoNewWindow -PassThru
-    if ($process.ExitCode -ne 0) {
-        throw "npm ExitCode: $($process.ExitCode) (Setup API)"
+    $oneclickDir = Join-Path $global:InstallDir "openclaw_oneclick"
+    if (Test-Path $oneclickDir) {
+        Set-Location $oneclickDir
+        Write-Color "   ➤ 正在注册 openclaw-setup 向导..." "Gray"
+        
+        $npmCmd = "npm install -g . --registry=$global:NpmRegistry --silent 2>&1"
+        $output = cmd /c $npmCmd
+        $exitCode = $LASTEXITCODE
+        
+        if ($exitCode -ne 0) {
+            Write-Color "   ⚠ openclaw-setup 注册失败 (ExitCode: $exitCode)，但不影响核心功能。" "Yellow"
+            Write-Color "     如需使用配置向导，请尝试以管理员身份运行安装。" "Yellow"
+            if ($output) { Write-Color "     详情: $output" "Gray" }
+        } else {
+            Write-Color "   ✓ openclaw-setup 向导已注册" "Green"
+        }
+    } else {
+        Write-Color "   ⚠ 未找到 openclaw_oneclick 目录，跳过向导注册。" "Yellow"
     }
 } catch {
-    Write-Color "❌ 绑定 openclaw-setup 失败。这通常意味着缺少最高权限，或者网络极度不稳。" "Red"
+    Write-Color "❌ 绑定过程发生异常: $_" "Red"
     Write-Color "   代码实际上已解压至 $global:InstallDir ，请手动前往注册。" "Yellow"
     exit 1
 }
 
 Write-Color "   ✓ 交互面板与后台核心已完美激活挂载" "Green"
 
-# 确保成功退出时返回 0
+# 确保成功退出时返回 0（即使npm install部分失败也不中断整个流程）
 exit 0

@@ -50,6 +50,9 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
         exit 1
     }
     Write-Color "   ✓ Git 平台部署成功" "Green"
+    
+    # 刷新 PowerShell 会话的环境变量 PATH 以防止刚安装完找不到命令
+    $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 } else {
     Write-Color "   ✓ Git 引擎已就绪：$((git --version) -join ' ')" "Green"
 }

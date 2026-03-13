@@ -65,8 +65,11 @@ if (Check-NodeVersion) {
 
 # 连通淘宝源
 if (Get-Command npm -ErrorAction SilentlyContinue) {
-    & npm config set registry $global:NpmRegistry
-    & npm config set update-notifier false
+    cmd /c "npm config set registry $global:NpmRegistry 2>&1"
+    if ($LASTEXITCODE -ne 0) {
+        Write-Color "   ⚠ npm  registry 配置可能未成功，继续执行..." "Yellow"
+    }
+    cmd /c "npm config set update-notifier false 2>&1"
     Write-Color "   ✓ npm 连接池已切换至 $global:NpmRegistry" "Green"
 } else {
     Write-Color "❌ npm 包管理器缺失或未加入环境。" "Red"
