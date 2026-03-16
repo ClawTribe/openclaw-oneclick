@@ -52,6 +52,13 @@ function readConfig() {
 function writeConfig(config) {
     const dir = path.dirname(CONFIG_PATH);
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    
+    // 默认确保 OpenClaw 3.2 工具权限已开启，避免新 Agent 默认无工具权限
+    if (!config.tools) config.tools = {};
+    config.tools.profile = "full";
+    if (!config.tools.sessions) config.tools.sessions = {};
+    config.tools.sessions.visibility = "all";
+
     fs.writeFileSync(CONFIG_PATH, JSON.stringify(config, null, 2));
 }
 
@@ -64,7 +71,7 @@ async function mainMenu() {
         log('╚═══════════════════════════════════════╝', 'cyan');
         console.log('');
         log('  1. 🤖 配置大模型 API', 'bright');
-        log('  2. 📱 配置飞书机器人', 'bright');
+        log('  2. 📱 配置飞书插件', 'bright');
         log('  3. 🔍 查看当前配置', 'bright');
         log('  4. 🔄 重启网关使配置生效', 'bright');
         console.log('');
@@ -271,88 +278,151 @@ async function configModel() {
     }
 }
 
+// 自动注入高级体验配置
+function enhanceFeishuConfig() {
+    const config = readConfig();
+    
+    // 飞书高级组件与体验设置
+    if (!config.channels) config.channels = {};
+    if (!config.channels.feishu) config.channels.feishu = {};
+    config.channels.feishu.streaming = true;
+    if (!config.channels.feishu.footer) config.channels.feishu.footer = {};
+    config.channels.feishu.footer.elapsed = true;
+    config.channels.feishu.footer.status = true;
+    config.channels.feishu.threadSession = true;
+
+    // writeConfig 会自动注入 tools 权限修补
+    writeConfig(config);
+}
+
 // 配置飞书
 async function configFeishu() {
     console.clear();
     log('╔═══════════════════════════════════════╗', 'cyan');
-    log('║      📱 配置飞书机器人                ║', 'cyan');
+    log('║      📱 配置飞书插件                  ║', 'cyan');
     log('╚═══════════════════════════════════════╝', 'cyan');
     console.log('');
 
-    log('请在飞书开放平台创建应用后获取以下信息:', 'gray');
+    log('有两个不同的飞书集成方式可供选择：', 'bright');
+    console.log('');
+    log('  1. 📘 飞书官方方式 (新增)', 'bright');
+    log('     由飞书官方团队提供，支持更复杂的鉴权、群聊与高级组件特性。', 'gray');
+    console.log('');
+    log('  2. 📗 openclaw官方方式 (保留)', 'bright');
+    log('     由 OpenClaw 原生提供，轻量级的默认实现，快速极简。', 'gray');
+    console.log('');
+    log('  0. 🔙 返回主菜单', 'yellow');
     console.log('');
 
-    const appId = await ask('请输入 App ID: ');
-    if (!appId || appId.trim() === '') {
-        log('App ID 不能为空', 'red');
-        await ask('按回车键继续...');
-        return;
-    }
+    const fChoice = await ask('请选择 (0-2): ');
 
-    const appSecret = await ask('请输入 App Secret: ');
-    if (!appSecret || appSecret.trim() === '') {
-        log('App Secret 不能为空', 'red');
-        await ask('按回车键继续...');
-        return;
-    }
+    if (fChoice === '0') return;
 
-    const verificationToken = await ask('请输入 Verification Token (可选，直接回车跳过): ');
-
-    // 保存配置
-    const config = readConfig();
-    
-    // 设置飞书配置（尽量贴近 OpenClaw 新版推荐结构）
-    // - 单账号配置放在 channels.feishu.accounts.default（避免 doctor 迁移提示）
-    // - 同时写入一些常用默认值（open/websocket/requireMention 等），避免用户落坑
-    if (!config.channels) config.channels = {};
-    config.channels.feishu = {
-        enabled: true,
-        domain: "feishu",
-
-        // 访问控制
-        dmPolicy: "open",
-        groupPolicy: "open",
-        allowFrom: ["*"],
-
-        // 行为偏好
-        connectionMode: "websocket",
-        ackReaction: "👀",
-        requireMention: true,
-        groupCommandMentionBypass: "never",
-
-        // 兼容：部分版本会读取单账号 top-level appId/appSecret
-        appId: appId.trim(),
-        appSecret: appSecret.trim(),
-
-        accounts: {
-            default: {
-                appId: appId.trim(),
-                appSecret: appSecret.trim(),
-                botName: "OpenClaw AI 助手"
+    if (fChoice === '1') {
+        console.clear();
+        log('正在为您拉取并安装飞书官方插件安装向导，请耐心等待 (受限于网络环境，可能需要数分钟)...', 'yellow');
+        console.log('');
+        try {
+            // 执行交互式向导 (飞书官方推荐方式)
+            execSync('npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
+            
+            enhanceFeishuConfig();
+            
+            console.log('');
+            log('✓ 飞书官方插件配置流程与依赖更新已结束。', 'green');
+            console.log('');
+            
+            const restart = await ask('如果您在向导中已完成所有配置，是否立即重启网关使配置生效? (Y/n): ');
+            if (restart.toLowerCase() !== 'n') {
+                await restartGateway();
+            }
+        } catch (e) {
+            console.log('');
+            log('✗ 常规权限执行失败，正尝试使用管理员 (sudo) 权限重新执行...', 'yellow');
+            console.log('');
+            try {
+                execSync('sudo npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
+                
+                enhanceFeishuConfig();
+                
+                console.log('');
+                log('✓ 飞书官方插件配置流程与依赖更新已结束。', 'green');
+                console.log('');
+                
+                const restart = await ask('如果您在向导中已完成所有配置，是否立即重启网关使配置生效? (Y/n): ');
+                if (restart.toLowerCase() !== 'n') {
+                    await restartGateway();
+                }
+            } catch (err2) {
+                console.log('');
+                log('✗ 使用 sudo 安装或配置飞书官方插件依然失败: ' + err2.message, 'red');
+                await ask('按回车键继续...');
             }
         }
-    };
-    
-    if (verificationToken && verificationToken.trim()) {
-        config.channels.feishu.verificationToken = verificationToken.trim();
-    }
+    } else if (fChoice === '2') {
+        console.clear();
+        log('请在飞书开放平台创建应用后获取以下信息:', 'gray');
+        console.log('');
 
-    writeConfig(config);
+        const appId = await ask('请输入 App ID: ');
+        if (!appId || appId.trim() === '') {
+            log('App ID 不能为空', 'red');
+            await ask('按回车键继续...');
+            return;
+        }
 
-    console.log('');
-    log('✓ 飞书配置已保存！', 'green');
-    console.log('');
-    
-    log('⚠️ 重要：用户配对后，您需要批准配对请求', 'yellow');
-    console.log('   用户发送消息后会收到配对码，格式如：');
-    console.log('   "Ask the bot owner to approve with: openclaw pairing approve feishu XXXXXX"');
-    console.log('   您需要运行以下命令批准：');
-    console.log('   openclaw pairing approve feishu <配对码>');
-    console.log('');
+        const appSecret = await ask('请输入 App Secret: ');
+        if (!appSecret || appSecret.trim() === '') {
+            log('App Secret 不能为空', 'red');
+            await ask('按回车键继续...');
+            return;
+        }
 
-    const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
-    if (restart.toLowerCase() !== 'n') {
-        await restartGateway();
+        const verificationToken = await ask('请输入 Verification Token (可选，直接回车跳过): ');
+
+        // 保存配置
+        const config = readConfig();
+        
+        // 这部分保留为极简结构，高级功能后续可按需补充或在官方插件中使用
+        if (!config.channels) config.channels = {};
+        config.channels.feishu = {
+            enabled: true,
+            appId: appId.trim(),
+            appSecret: appSecret.trim(),
+            requireMention: true,
+            groupPolicy: "open",
+            streaming: true,
+            footer: {
+                elapsed: true,
+                status: true
+            },
+            threadSession: true
+        };
+        
+        if (verificationToken && verificationToken.trim()) {
+            config.channels.feishu.verificationToken = verificationToken.trim();
+        }
+
+        writeConfig(config);
+
+        console.log('');
+        log('✓ 原生(openclaw官方方式)飞书配置已保存！', 'green');
+        console.log('');
+        
+        log('⚠️ 重要：用户配对后，您需要批准配提示', 'yellow');
+        console.log('   用户发送消息后会收到配对码，格式如：');
+        console.log('   "Ask the bot owner to approve with: openclaw pairing approve feishu XXXXXX"');
+        console.log('   您需要运行以下命令批准：');
+        console.log('   openclaw pairing approve feishu <配对码>');
+        console.log('');
+
+        const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
+        if (restart.toLowerCase() !== 'n') {
+            await restartGateway();
+        }
+    } else {
+        log('无效选择，请重试', 'red');
+        await ask('按回车键继续...');
     }
 }
 
@@ -400,6 +470,21 @@ async function showConfig() {
 // 重启网关
 async function restartGateway() {
     console.log('');
+    
+    // 1. 自动清除可能的冗余插件冲突
+    log('正在检查并清理可能冲突的重复飞书插件...', 'yellow');
+    try {
+        const dupPluginPath = path.join(HOME, '.openclaw', 'extensions', 'feishu');
+        if (fs.existsSync(dupPluginPath)) {
+            fs.rmSync(dupPluginPath, { recursive: true, force: true });
+            log('✓ 已清理旧版致冲突的内置 feishu 插件', 'green');
+            console.log('');
+        }
+    } catch (e) {
+        log('⚠ 清理重复插件时出现警告: ' + e.message, 'yellow');
+        console.log('');
+    }
+
     log('正在重启网关...', 'yellow');
     try {
         execSync('openclaw gateway restart', { stdio: 'inherit' });
