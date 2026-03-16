@@ -29,6 +29,11 @@ Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManage
 2. 在管理员 PowerShell 窗口中 **点击鼠标右键**（代码会自动粘贴）
 3. 按下 **回车键** 开始安装
 
+> 💡 默认安装最新版本。如需安装指定版本，在命令前加上版本号：
+> ```powershell
+> $env:VERSION="2026.3.15"; Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex (irm 'https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.ps1')
+> ```
+
 > ⚠️ **注意**：安装过程中请保持网络连接，耐心等待直到出现"部署成功"提示。
 
 ### macOS & Linux 用户
@@ -49,6 +54,11 @@ curl -fsSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/in
 ```
 2. 在终端窗口中 **点击鼠标右键**（代码会自动粘贴）
 3. 按下 **回车键** 开始安装
+
+> 💡 默认安装最新版本。如需安装指定版本，在命令中传入 `VERSION` 环境变量：
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/ClawTribe/openclaw-oneclick/main/install.sh | VERSION=2026.3.15 bash
+> ```
 
 > ⚠️ **注意**：安装过程中可能需要您输入电脑密码来确认系统权限，输入密码时屏幕不会显示任何字符，这是正常的，输入完成后按回车即可。
 ---

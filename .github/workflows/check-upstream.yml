@@ -1,0 +1,89 @@
+name: Check Upstream OpenClaw Updates
+
+on:
+  schedule:
+    # 每天 UTC 08:00 (北京时间 16:00) 检查一次上游更新
+    - cron: '0 8 * * *'
+  workflow_dispatch:  # 也支持手动触发检查
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Check for New OpenClaw Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 需要完整的 tag 历史
+
+      - name: Check Upstream & Auto Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+
+          echo "🔍 正在检查 openclaw/openclaw 最新版本..."
+          
+          # 获取上游最新 release 版本
+          UPSTREAM_VER=$(curl -s https://api.github.com/repos/openclaw/openclaw/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+          
+          if [ -z "$UPSTREAM_VER" ]; then
+            echo "❌ 无法获取上游版本，跳过"
+            exit 0
+          fi
+          
+          echo "   上游最新版本: ${UPSTREAM_VER}"
+
+          # 读取上次记录的上游版本
+          RECORD_FILE=".upstream-version"
+          LAST_VER=""
+          if [ -f "$RECORD_FILE" ]; then
+            LAST_VER=$(cat "$RECORD_FILE")
+          fi
+          echo "   本地记录版本: ${LAST_VER:-'(无记录)'}"
+
+          # 比较版本，如果相同则跳过
+          if [ "$UPSTREAM_VER" = "$LAST_VER" ]; then
+            echo "✅ 上游无更新，跳过"
+            exit 0
+          fi
+
+          echo "🆕 发现上游新版本: ${UPSTREAM_VER} (之前: ${LAST_VER:-'无'})"
+
+          # 直接使用上游版本号，保持完全一致
+          CLEAN_VER=$(echo "$UPSTREAM_VER" | sed 's/^v//')
+          TAG="${UPSTREAM_VER}"  # 与上游 tag 名称完全一致，如 v2026.3.15
+
+          echo "   同步版本: ${TAG}"
+
+          # 更新版本记录文件
+          echo "$UPSTREAM_VER" > "$RECORD_FILE"
+
+          # 更新 package.json 版本（使用不带 v 前缀的版本号）
+          if command -v node &> /dev/null; then
+            node -e "
+              const fs = require('fs');
+              const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+              pkg.version = '${CLEAN_VER}';
+              fs.writeFileSync('package.json', JSON.stringify(pkg, null, 4) + '\n');
+            "
+          else
+            sed -i "s/\"version\": \"[^\"]*\"/\"version\": \"${CLEAN_VER}\"/" package.json
+          fi
+
+          # 提交更改
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add "$RECORD_FILE" package.json
+          git commit -m "🔄 auto-sync: upstream openclaw ${UPSTREAM_VER}"
+          git push origin main
+
+          # 打与上游完全一致的 tag，触发 release workflow
+          git tag "$TAG"
+          git push origin "$TAG"
+
+          echo "🎉 已自动创建 tag: ${TAG}（与上游一致），release workflow 将自动触发构建"

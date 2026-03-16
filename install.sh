@@ -17,10 +17,19 @@ log() {
 }
 
 # --- 基础配置变量 ---
-export VERSION="3.3.17"
 export REPO_USER="ClawTribe"
 export REPO_NAME="openclaw-oneclick"
 export INSTALL_DIR="$HOME/OpenClaw"
+
+# 版本号：优先使用用户通过环境变量传入的 VERSION，否则自动获取最新 release tag
+if [ -z "${VERSION:-}" ]; then
+  VERSION=$(curl -sS https://api.github.com/repos/ClawTribe/openclaw-oneclick/releases/latest 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"v?([^"]+)".*/\1/')
+  if [ -z "$VERSION" ]; then
+    echo -e "${RED}❌ 无法自动获取最新版本号，请手动指定：VERSION=x.x.x bash install.sh${NC}"
+    exit 1
+  fi
+fi
+export VERSION
 
 # ---- 动态选择加速源（每次运行都测速，适配不同地区/运营商）----
 # 说明：这里的“前缀”需要能拼接成：

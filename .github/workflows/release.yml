@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      core_version:
+        description: 'OpenClaw Core 版本 (留空则自动获取最新)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -47,11 +53,25 @@ jobs:
           corepack prepare pnpm@latest --activate
           pnpm --version
 
+      - name: Resolve Latest OpenClaw Core Version
+        id: resolve_version
+        shell: bash
+        run: |
+          # 如果手动触发时指定了版本，使用指定版本；否则自动获取最新 release
+          if [ -n "${{ github.event.inputs.core_version }}" ]; then
+            CORE_VER="${{ github.event.inputs.core_version }}"
+          else
+            CORE_VER=$(curl -s https://api.github.com/repos/openclaw/openclaw/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+          fi
+          echo "core_version=${CORE_VER}" >> "$GITHUB_OUTPUT"
+          echo "📦 Using OpenClaw Core version: ${CORE_VER}"
+
       - name: Download & Extract Official OpenClaw Core
         shell: bash
         run: |
+          CORE_VER="${{ steps.resolve_version.outputs.core_version }}"
           mkdir core
-          curl -L "https://github.com/openclaw/openclaw/archive/v2026.2.26.tar.gz" | tar -xz -C core --strip-components=1
+          curl -fSL "https://github.com/openclaw/openclaw/archive/${CORE_VER}.tar.gz" | tar -xz -C core --strip-components=1
           
       - name: Prep Setup Console (openclaw-setup)
         shell: bash
