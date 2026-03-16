@@ -56,12 +56,14 @@ jobs:
       - name: Resolve Latest OpenClaw Core Version
         id: resolve_version
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 如果手动触发时指定了版本，使用指定版本；否则自动获取最新 release
           if [ -n "${{ github.event.inputs.core_version }}" ]; then
             CORE_VER="${{ github.event.inputs.core_version }}"
           else
-            CORE_VER=$(curl -sfSL https://api.github.com/repos/openclaw/openclaw/releases/latest | jq -r '.tag_name')
+            CORE_VER=$(curl -sfSL -H "Authorization: token ${GH_TOKEN}" https://api.github.com/repos/openclaw/openclaw/releases/latest | jq -r '.tag_name')
           fi
           if [ -z "$CORE_VER" ] || [ "$CORE_VER" = "null" ]; then
             echo "❌ 无法获取 OpenClaw Core 最新版本"
