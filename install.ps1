@@ -172,7 +172,18 @@ if ($ProxyPrefix) {
   $global:ReleaseBaseUrl = "https://github.com/$global:RepoUser/$global:RepoName/releases/download/v$global:Version"
   $global:RawBaseUrl = "https://raw.githubusercontent.com/$global:RepoUser/$global:RepoName/main/scripts"
 }
-$global:NodeVersion = '22.14.0'
+# Node.js 版本：从上游 openclaw 的 package.json engines.node 动态获取
+try {
+    $pkgJson = Invoke-RestMethod -Uri 'https://raw.githubusercontent.com/openclaw/openclaw/main/package.json' -TimeoutSec 10 -ErrorAction Stop
+    $rawEngine = $pkgJson.engines.node
+    if ($rawEngine -match '(\d+\.\d+\.\d+)') {
+        $global:NodeVersion = $Matches[1]
+    } else {
+        $global:NodeVersion = '22.16.0'
+    }
+} catch {
+    $global:NodeVersion = '22.16.0'
+}
 $global:NpmRegistry = 'https://registry.npmmirror.com'
 
 Write-Color "`n──────────────────────────────────────────────────" "Cyan"

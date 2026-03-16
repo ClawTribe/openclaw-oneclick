@@ -12,7 +12,7 @@ if (-not (Get-Command Write-Color -ErrorAction SilentlyContinue)) {
     }
 }
 
-Write-Color "`n[2/3] 配置 Node.js 与 NPM 镜像缓存 (依赖 22.14.0 LTS 环境)..." "Yellow"
+Write-Color "`n[2/3] 配置 Node.js 与 NPM 镜像缓存 (依赖 v$global:NodeVersion LTS 环境)..." "Yellow"
 
 $tempDir = [System.IO.Path]::GetTempPath()
 

@@ -304,7 +304,9 @@ else
   export RAW_BASE_URL="https://raw.githubusercontent.com/$REPO_USER/$REPO_NAME/main/scripts"
 fi
 
-export NODE_VERSION="22.14.0"
+# Node.js 版本：从上游 openclaw 的 package.json engines.node 动态获取
+_RAW_NODE_ENGINE=$(curl -sS https://raw.githubusercontent.com/openclaw/openclaw/main/package.json 2>/dev/null | grep -o '"node"[ ]*:[ ]*"[^"]*"' | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+export NODE_VERSION="${_RAW_NODE_ENGINE:-22.16.0}"
 export NPM_REGISTRY="https://registry.npmmirror.com"
 
 echo -e "${CYAN}

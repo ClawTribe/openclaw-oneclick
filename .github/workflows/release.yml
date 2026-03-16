@@ -41,18 +41,6 @@ jobs:
         with:
           path: wrapper
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22.14.0
-
-      - name: Setup pnpm
-        shell: bash
-        run: |
-          corepack enable
-          corepack prepare pnpm@latest --activate
-          pnpm --version
-
       - name: Resolve Latest OpenClaw Core Version
         id: resolve_version
         shell: bash
@@ -78,7 +66,34 @@ jobs:
           CORE_VER="${{ steps.resolve_version.outputs.core_version }}"
           mkdir core
           curl -fSL "https://github.com/openclaw/openclaw/archive/${CORE_VER}.tar.gz" | tar -xz -C core --strip-components=1
-          
+
+      - name: Detect Required Node.js Version
+        id: detect_node
+        shell: bash
+        run: |
+          # 从上游 package.json 的 engines.node 字段提取最低版本号（如 >=22.16.0 → 22.16.0）
+          RAW_ENGINE=$(jq -r '.engines.node // empty' core/package.json)
+          NODE_VER=$(echo "$RAW_ENGINE" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1)
+          if [ -z "$NODE_VER" ]; then
+            NODE_VER="22.16.0"  # 兜底默认值
+            echo "⚠️ 未能从 package.json 解析 node 版本，使用默认: ${NODE_VER}"
+          else
+            echo "📌 上游要求 Node.js: ${RAW_ENGINE} → 使用 v${NODE_VER}"
+          fi
+          echo "node_version=${NODE_VER}" >> "$GITHUB_OUTPUT"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ steps.detect_node.outputs.node_version }}
+
+      - name: Setup pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@latest --activate
+          pnpm --version
+           
       - name: Prep Setup Console (openclaw-setup)
         shell: bash
         run: |
