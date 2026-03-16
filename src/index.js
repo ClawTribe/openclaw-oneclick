@@ -305,11 +305,11 @@ async function configFeishu() {
 
     log('有两个不同的飞书集成方式可供选择：', 'bright');
     console.log('');
-    log('  1. 📘 飞书官方方式 (新增)', 'bright');
-    log('     由飞书官方团队提供，支持更复杂的鉴权、群聊与高级组件特性。', 'gray');
+    log('  1. 📘 飞书官方方式 (推荐)', 'bright');
+    log('     由飞书官方团队提供，快速创建机器人，支持更复杂的鉴权、群聊与高级组件特性。', 'gray');
     console.log('');
-    log('  2. 📗 openclaw官方方式 (保留)', 'bright');
-    log('     由 OpenClaw 原生提供，轻量级的默认实现，快速极简。', 'gray');
+    log('  2. 📗 openclaw官方方式 (需要自己配置机器人)', 'bright');
+    log('     由 OpenClaw 原生提供默认实现。', 'gray');
     console.log('');
     log('  0. 🔙 返回主菜单', 'yellow');
     console.log('');

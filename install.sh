@@ -404,6 +404,9 @@ if openclaw onboard --non-interactive \
   --skip-skills; then
   echo ""
   echo -e "${YELLOW}⚠ 初始化命令已执行，如果控制台未自动打开，请按回车键继续...${NC}"
+  echo -e "\n${YELLOW}⚠ 您可以手动运行以下命令打开控制台：${NC}"
+  echo -e "${CYAN}  openclaw dashboard${NC}"
+  echo -e "${CYAN}  openclaw-setup  # 配置大模型与飞书${NC}"
   read -r
   
   echo -e "➤ 正在重启网关..."
