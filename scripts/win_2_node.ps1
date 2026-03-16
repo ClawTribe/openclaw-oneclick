@@ -12,21 +12,39 @@ if (-not (Get-Command Write-Color -ErrorAction SilentlyContinue)) {
     }
 }
 
-Write-Color "`n[2/3] 配置 Node.js 与 NPM 镜像缓存 (依赖 v$global:NodeVersion LTS 环境)..." "Yellow"
+Write-Color "`n[2/3] 配置 Node.js 与 NPM 镜像缓存 (需要 v$global:NodeVersion+)..." "Yellow"
 
 $tempDir = [System.IO.Path]::GetTempPath()
 
-function Check-NodeVersion {
+# 精确版本比较：当前版本 >= 要求版本
+function Test-NodeVersionOk {
     if (-not (Get-Command node -ErrorAction SilentlyContinue)) { return $false }
     $ver = node -v
-    if ($ver -match "^v(\d+)\.") {
-        if ([int]$matches[1] -ge 22) { return $true }
+    if ($ver -match '^v?(\d+)\.(\d+)\.(\d+)') {
+        $curMajor = [int]$matches[1]; $curMinor = [int]$matches[2]; $curPatch = [int]$matches[3]
+    } else {
+        return $false
     }
-    return $false
+    # 解析要求的版本
+    if ($global:NodeVersion -match '^v?(\d+)\.(\d+)\.(\d+)') {
+        $reqMajor = [int]$matches[1]; $reqMinor = [int]$matches[2]; $reqPatch = [int]$matches[3]
+    } else {
+        return $false
+    }
+    if ($curMajor -gt $reqMajor) { return $true }
+    if ($curMajor -lt $reqMajor) { return $false }
+    if ($curMinor -gt $reqMinor) { return $true }
+    if ($curMinor -lt $reqMinor) { return $false }
+    return ($curPatch -ge $reqPatch)
 }
 
-if (-not (Check-NodeVersion)) {
-    Write-Color "   ⚠ 缺失推荐引擎或者当前 Node.js 版本低于 v22，准备进行热更新安装..." "Cyan"
+if (-not (Test-NodeVersionOk)) {
+    if (Get-Command node -ErrorAction SilentlyContinue) {
+        $curVer = node -v
+        Write-Color "   ⚠ 当前 Node.js $curVer 版本低于要求 (需要 v$global:NodeVersion+)，准备升级..." "Cyan"
+    } else {
+        Write-Color "   ⚠ 未找到 Node.js，准备安装 v$global:NodeVersion..." "Cyan"
+    }
     $nodeInstaller = Join-Path $tempDir "Node-Installer.msi"
     
     $nodeUrl = "https://npmmirror.com/mirrors/node/v$global:NodeVersion/node-v$global:NodeVersion-x64.msi"
@@ -56,10 +74,12 @@ if (-not (Check-NodeVersion)) {
 # 刷新 PowerShell 会话的环境变量 PATH 以防止刚安装完找不到命令
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-if (Check-NodeVersion) {
-    Write-Color "   ✓ Node v22.x 调度中心运行中" "Green"
+if (Test-NodeVersionOk) {
+    Write-Color "   ✓ Node.js $(node -v) 核心运转中" "Green"
 } else {
-    Write-Color "❌ 系统 PATH 未能自动重载，无法调用刚安装的 Node。请重启电脑后重试。" "Red"
+    $curVer = if (Get-Command node -ErrorAction SilentlyContinue) { node -v } else { "未安装" }
+    Write-Color "❌ Node.js 版本不满足要求：当前 $curVer，需要 v$global:NodeVersion+" "Red"
+    Write-Color "   请手动安装 Node.js v$global:NodeVersion 后重试。" "Yellow"
     exit 1
 }
 
