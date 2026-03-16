@@ -321,6 +321,7 @@ async function configFeishu() {
     if (fChoice === '1') {
         console.clear();
         log('正在为您拉取并安装飞书官方插件安装向导，请耐心等待 (受限于网络环境，可能需要数分钟)...', 'yellow');
+        log('如果windows 设备中扫码无法成功，可能是因为终端的分辨率问题导致，建议更换终端下载使用：Cmder ', 'yellow');
         console.log('');
         try {
             // 执行交互式向导 (飞书官方推荐方式)
