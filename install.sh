@@ -361,7 +361,7 @@ run_remote_script() {
     fi
     
     chmod +x "$tmp_script"
-    if ! bash "$tmp_script"; then
+    if ! source "$tmp_script"; then
         echo -e "${RED}❌ 流程 ${script_name} 异常中断。${NC}"
         rm -f "$tmp_script"
         exit 1
