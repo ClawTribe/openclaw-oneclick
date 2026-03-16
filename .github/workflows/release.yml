@@ -61,7 +61,11 @@ jobs:
           if [ -n "${{ github.event.inputs.core_version }}" ]; then
             CORE_VER="${{ github.event.inputs.core_version }}"
           else
-            CORE_VER=$(curl -s https://api.github.com/repos/openclaw/openclaw/releases/latest | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"([^"]+)".*/\1/')
+            CORE_VER=$(curl -sfSL https://api.github.com/repos/openclaw/openclaw/releases/latest | jq -r '.tag_name')
+          fi
+          if [ -z "$CORE_VER" ] || [ "$CORE_VER" = "null" ]; then
+            echo "❌ 无法获取 OpenClaw Core 最新版本"
+            exit 1
           fi
           echo "core_version=${CORE_VER}" >> "$GITHUB_OUTPUT"
           echo "📦 Using OpenClaw Core version: ${CORE_VER}"

@@ -23,7 +23,7 @@ export INSTALL_DIR="$HOME/OpenClaw"
 
 # 版本号：优先使用用户通过环境变量传入的 VERSION，否则自动获取最新 release tag
 if [ -z "${VERSION:-}" ]; then
-  VERSION=$(curl -sS https://api.github.com/repos/ClawTribe/openclaw-oneclick/releases/latest 2>/dev/null | grep '"tag_name"' | sed -E 's/.*"tag_name":\s*"v?([^"]+)".*/\1/')
+  VERSION=$(curl -sS https://api.github.com/repos/ClawTribe/openclaw-oneclick/releases/latest 2>/dev/null | grep -o '"tag_name"[ ]*:[ ]*"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"' | sed 's/^v//')
   if [ -z "$VERSION" ]; then
     echo -e "${RED}❌ 无法自动获取最新版本号，请手动指定：VERSION=x.x.x bash install.sh${NC}"
     exit 1
