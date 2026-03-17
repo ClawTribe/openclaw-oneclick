@@ -354,10 +354,35 @@ async function configFeishu() {
                 const cmderExePath = path.join(cmderExtractPath, 'Cmder.exe');
                 
                 if (!fs.existsSync(cmderExePath)) {
-                    log('➤ 正在从 Github 下载 Cmder Mini...', 'gray');
-                    const cmderUrl = "https://ghproxy.cn/https://github.com/cmderdev/cmder/releases/download/v1.3.24/cmder_mini.zip";
-                    // 尝试使用 Windows 自带的 curl.exe 来显示直观的下载进度条，否则退回到原生请求
-                    execSync(`powershell -NoProfile -Command "if (Get-Command curl.exe -ErrorAction SilentlyContinue) { curl.exe -fSL --progress-bar '${cmderUrl}' -o '${cmderZipPath}' } else { Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing }"`, { stdio: 'inherit' });
+                    log('➤ 正在为您准备下载 Cmder Mini (免安装版)...', 'gray');
+                    const targetUrl = "https://github.com/cmderdev/cmder/releases/download/v1.3.24/cmder_mini.zip";
+                    const proxyList = [
+                        "https://ghproxy.net/",
+                        "https://gh-proxy.com/",
+                        "https://ghproxy.cn/",
+                        "https://ghp.ci/",
+                        "https://mirror.ghproxy.com/",
+                        "" // 最后一个作为源站物理直连兜底
+                    ];
+                    
+                    let downloaded = false;
+                    for (const proxy of proxyList) {
+                        const cmderUrl = proxy + targetUrl;
+                        log(`➤ 尝试下载节点: ${proxy ? proxy : 'GitHub源站直连'} ...`, 'gray');
+                        try {
+                            // 使用 $LASTEXITCODE -ne 0 确保 curl 失败时抛出异常到 catch 继续重试
+                            const psCmd = `if (Get-Command curl.exe -ErrorAction SilentlyContinue) { & curl.exe -fSL --progress-bar --connect-timeout 15 '${cmderUrl}' -o '${cmderZipPath}'; if ($LASTEXITCODE -ne 0) { exit 1 } } else { Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing -TimeoutSec 30 }`;
+                            execSync(`powershell -NoProfile -Command "${psCmd}"`, { stdio: 'inherit' });
+                            downloaded = true;
+                            break; 
+                        } catch (e) {
+                            log('   ⚠️ 该节点连接超时或失败，正在切换下一个资源...', 'yellow');
+                        }
+                    }
+                    
+                    if (!downloaded) {
+                        throw new Error("所有的加速节点和 GitHub 源站直连均已尝试并全部失败，请检查您的网络连接或代理设置。");
+                    }
                     
                     log('➤ 正在解压...', 'gray');
                     // 采用 PowerShell 原生解压，向下兼容所有 Win10/11，比 tar 更稳妥
