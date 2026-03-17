@@ -319,30 +319,87 @@ async function configFeishu() {
     if (fChoice === '0') return;
 
     if (fChoice === '1') {
-        console.clear();
-        log('正在为您拉取并安装飞书官方插件安装向导，请耐心等待 (受限于网络环境，可能需要数分钟)...', 'yellow');
-        log('如果windows 设备中扫码无法成功，可能是因为终端的分辨率问题导致，建议更换终端下载使用：Cmder ', 'yellow');
-        console.log('');
-        try {
-            // 执行交互式向导 (飞书官方推荐方式)
-            execSync('npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
-            
-            enhanceFeishuConfig();
-            
+        const isWindows = os.platform() === 'win32';
+        let fSubChoice = '1'; // 非 Windows 默认直接执行执行向导，不再多此一举询问
+        
+        if (isWindows) {
+            console.clear();
+            log('您选择了 [飞书官方方式]', 'bright');
             console.log('');
-            log('✓ 飞书官方插件配置流程与依赖更新已结束。', 'green');
+            log('  1. ⚡ 直接在当前终端运行配置向导', 'bright');
+            log('     如您使用 Windows Terminal，或想直接尝试，请选此项 (Ctrl+滚轮可缩小防变形)。', 'gray');
+            console.log('');
+            log('  2. 🪟 自动下载独立终端 (Cmder) 并运行向导', 'bright');
+            log('     如您反复遇到二维码扫不出、变形等问题，推荐使用此项。', 'gray');
+            log('     我们将为您自动下载 Cmder (迷你版) 并弹出高清扫码新窗口。', 'gray');
             console.log('');
             
-            const restart = await ask('如果您在向导中已完成所有配置，是否立即重启网关使配置生效? (Y/n): ');
-            if (restart.toLowerCase() !== 'n') {
-                await restartGateway();
+            log('  0. 🔙 返回上一级', 'yellow');
+            console.log('');
+            
+            fSubChoice = await ask('请选择选项: ');
+        }
+
+        if (fSubChoice === '0') {
+            return await configFeishu();
+        }
+
+        if (fSubChoice === '2' && isWindows) {
+            console.clear();
+            log('正在为您准备独立的高清扫码环境 (Cmder)...', 'yellow');
+            try {
+                const tempDir = os.tmpdir();
+                const cmderZipPath = path.join(tempDir, 'cmder_mini.zip');
+                const cmderExtractPath = path.join(tempDir, 'cmder_mini');
+                const cmderExePath = path.join(cmderExtractPath, 'Cmder.exe');
+                
+                if (!fs.existsSync(cmderExePath)) {
+                    log('➤ 正在从 Github 下载 Cmder Mini...', 'gray');
+                    const cmderUrl = "https://ghproxy.cn/https://github.com/cmderdev/cmder/releases/download/v1.3.24/cmder_mini.zip";
+                    execSync(`powershell -NoProfile -Command "Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing"`, { stdio: 'inherit' });
+                    
+                    log('➤ 正在解压...', 'gray');
+                    // 采用 PowerShell 原生解压，向下兼容所有 Win10/11，比 tar 更稳妥
+                    if (!fs.existsSync(cmderExtractPath)) fs.mkdirSync(cmderExtractPath);
+                    execSync(`powershell -NoProfile -Command "Expand-Archive -Path '${cmderZipPath}' -DestinationPath '${cmderExtractPath}' -Force"`, { stdio: 'inherit' });
+                }
+
+                log('✓ 环境准备完毕，即将弹出 Cmder 新窗口，请在【新窗口】中完成扫码绑定！', 'green');
+                log('⚠ 请注意：完成扫码绑定后，直接关闭那个新窗口，然后在此按下回车键继续。', 'yellow');
+                
+                // 写一个临时的 bat 脚本，加入 chcp 65001 确保中文不会变乱码
+                const runBatPath = path.join(tempDir, 'run_lark.bat');
+                fs.writeFileSync(runBatPath, '@echo off\r\nchcp 65001 >nul\r\necho 正在启动飞书官方安装向导...\r\ncall npx -y @larksuite/openclaw-lark-tools install\r\necho.\r\necho 配置向导已结束。请在确认配置成功后，直接关闭本窗口。\r\npause\r\n', { encoding: 'utf8' });
+                
+                // 启动 Cmder，明确使用 cmd 执行 bat，避免闪退
+                execSync(`start "" "${cmderExePath}" /CMD cmd /c "${runBatPath}"`);
+
+                await ask('\n[确认] 当您在新窗口配置结束并关闭了它后，请按回车键继续...');
+                
+                enhanceFeishuConfig();
+                
+                console.log('');
+                log('✓ 飞书官方插件配置流程与依赖更新已结束。', 'green');
+                console.log('');
+                
+                const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
+                if (restart.toLowerCase() !== 'n') {
+                    await restartGateway();
+                }
+            } catch (e) {
+                log('✗ 准备独立环境或唤起失败: ' + e.message, 'red');
+                await ask('按回车键继续...');
             }
-        } catch (e) {
-            console.log('');
-            log('✗ 常规权限执行失败，正尝试使用管理员 (sudo) 权限重新执行...', 'yellow');
+            return;
+        }
+
+        if (fSubChoice === '1') {
+            console.clear();
+            log('正在为您拉取并安装飞书官方插件安装向导，请耐心等待 (受限于网络环境，可能需要数分钟)...', 'yellow');
             console.log('');
             try {
-                execSync('sudo npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
+                // 执行交互式向导 (飞书官方推荐方式)
+                execSync('npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
                 
                 enhanceFeishuConfig();
                 
@@ -354,11 +411,40 @@ async function configFeishu() {
                 if (restart.toLowerCase() !== 'n') {
                     await restartGateway();
                 }
-            } catch (err2) {
+            } catch (e) {
                 console.log('');
-                log('✗ 使用 sudo 安装或配置飞书官方插件依然失败: ' + err2.message, 'red');
-                await ask('按回车键继续...');
+                if (isWindows) {
+                    log('✗ 执行失败。由于 Windows 平台权限限制，如果出现 EPERM 等权限报错，', 'red');
+                    log('  请关闭当前窗口，然后【右键 -> 以管理员身份运行】重新打开 PowerShell 或终端再试。', 'yellow');
+                    log('  详细报错: ' + e.message, 'gray');
+                    await ask('\n按回车键继续...');
+                } else {
+                    log('✗ 常规权限执行失败，正尝试使用管理员 (sudo) 权限重新执行...', 'yellow');
+                    console.log('');
+                    try {
+                        execSync('sudo npx -y @larksuite/openclaw-lark-tools install', { stdio: 'inherit' });
+                        
+                        enhanceFeishuConfig();
+                        
+                        console.log('');
+                        log('✓ 飞书官方插件配置流程与依赖更新已结束。', 'green');
+                        console.log('');
+                        
+                        const restart = await ask('如果您在向导中已完成所有配置，是否立即重启网关使配置生效? (Y/n): ');
+                        if (restart.toLowerCase() !== 'n') {
+                            await restartGateway();
+                        }
+                    } catch (err2) {
+                        console.log('');
+                        log('✗ 使用 sudo 安装或配置依然失败: ' + err2.message, 'red');
+                        await ask('按回车键继续...');
+                    }
+                }
             }
+        } else {
+             log('无效选项，请重试', 'red');
+             await ask('按回车键继续...');
+             return;
         }
     } else if (fChoice === '2') {
         console.clear();
