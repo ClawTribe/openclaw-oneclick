@@ -370,13 +370,22 @@ async function configFeishu() {
                         const cmderUrl = proxy + targetUrl;
                         log(`➤ 尝试下载节点: ${proxy ? proxy : 'GitHub源站直连'} ...`, 'gray');
                         try {
-                            // 使用 $LASTEXITCODE -ne 0 确保 curl 失败时抛出异常到 catch 继续重试
-                            const psCmd = `if (Get-Command curl.exe -ErrorAction SilentlyContinue) { & curl.exe -fSL --progress-bar --connect-timeout 15 '${cmderUrl}' -o '${cmderZipPath}'; if ($LASTEXITCODE -ne 0) { exit 1 } } else { Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing -TimeoutSec 30 }`;
-                            execSync(`powershell -NoProfile -Command "${psCmd}"`, { stdio: 'inherit' });
-                            downloaded = true;
-                            break; 
+                            // 1. curl 层级: 5秒连不上直接放弃 (--connect-timeout); 下载最多给 60 秒 (--max-time)
+                            const psCmd = `if (Get-Command curl.exe -ErrorAction SilentlyContinue) { & curl.exe -fSL --progress-bar --connect-timeout 5 --max-time 60 '${cmderUrl}' -o '${cmderZipPath}'; if ($LASTEXITCODE -ne 0) { exit 1 } } else { Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing -TimeoutSec 60 }`;
+                            
+                            // 2. Node 层级: 增加 timeout 防止某些系统底层死锁导致的无限傻等
+                            execSync(`powershell -NoProfile -Command "${psCmd}"`, { stdio: 'inherit', timeout: 65000 });
+                            
+                            // 3. 结果核验: 如果代理返回了个只有几KB的报错重定向网页，而非真实压缩包，则视为失败
+                            if (fs.existsSync(cmderZipPath) && fs.statSync(cmderZipPath).size > 1024 * 1024) {
+                                downloaded = true;
+                                break; 
+                            } else {
+                                throw new Error("下载得到的文件体积异常，代理可能返回了错误页面");
+                            }
                         } catch (e) {
-                            log('   ⚠️ 该节点连接超时或失败，正在切换下一个资源...', 'yellow');
+                            log('   ⚠️ 该节点连接超时或拉取失败，正在切换下一个加速源...', 'yellow');
+                            if (fs.existsSync(cmderZipPath)) fs.unlinkSync(cmderZipPath);
                         }
                     }
                     
