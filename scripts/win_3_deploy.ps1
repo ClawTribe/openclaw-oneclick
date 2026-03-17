@@ -19,7 +19,12 @@ Write-Color "`n[3/3] 下载并装载 OpenClaw 预构建平台包..." "Yellow"
 $tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("openclaw-dl-" + [guid]::NewGuid().ToString())
 New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
 
-$Arch = if ([Environment]::Is64BitProcess) { "x64" } else { "x86" }
+$is64BitOS = if ($null -ne [Environment]::Is64BitOperatingSystem) { [Environment]::Is64BitOperatingSystem } else { ($env:PROCESSOR_ARCHITECTURE -match 'AMD64|ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -match 'AMD64|ARM64') }
+if (-not $is64BitOS) {
+    Write-Color "❌ 不支持 32 位操作系统，OpenClaw 需要 64 位 (x64) 环境运行。" "Red"
+    exit 1
+}
+$Arch = "x64"
 $PackageName = "OpenClaw-Windows-$Arch.zip"
 $DownloadUrl = "$global:ReleaseBaseUrl/$PackageName"
 $ZipPath = Join-Path $tempDir $PackageName

@@ -47,8 +47,9 @@ if (-not (Test-NodeVersionOk)) {
     }
     $nodeInstaller = Join-Path $tempDir "Node-Installer.msi"
     
+    $is64BitOS = if ($null -ne [Environment]::Is64BitOperatingSystem) { [Environment]::Is64BitOperatingSystem } else { ($env:PROCESSOR_ARCHITECTURE -match 'AMD64|ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -match 'AMD64|ARM64') }
     $nodeUrl = "https://npmmirror.com/mirrors/node/v$global:NodeVersion/node-v$global:NodeVersion-x64.msi"
-    if (-not [Environment]::Is64BitOperatingSystem) {
+    if (-not $is64BitOS) {
         $nodeUrl = "https://npmmirror.com/mirrors/node/v$global:NodeVersion/node-v$global:NodeVersion-x86.msi"
     }
 

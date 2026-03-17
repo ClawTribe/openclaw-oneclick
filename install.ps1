@@ -51,7 +51,8 @@ $global:ProxyCandidates = @(
 
 function Get-PlatformPackageName {
     # 仅用于测速 Release 链路：按当前系统架构推导包名，避免测速到不存在的文件导致误判
-    $arch = if ([Environment]::Is64BitProcess) { "x64" } else { "x86" }
+    $is64BitOS = if ($null -ne [Environment]::Is64BitOperatingSystem) { [Environment]::Is64BitOperatingSystem } else { ($env:PROCESSOR_ARCHITECTURE -match 'AMD64|ARM64') -or ($env:PROCESSOR_ARCHITEW6432 -match 'AMD64|ARM64') }
+    $arch = if ($is64BitOS) { "x64" } else { "x86" }
     return "OpenClaw-Windows-$arch.zip"
 }
 
