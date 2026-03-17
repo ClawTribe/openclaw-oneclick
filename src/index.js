@@ -356,7 +356,8 @@ async function configFeishu() {
                 if (!fs.existsSync(cmderExePath)) {
                     log('➤ 正在从 Github 下载 Cmder Mini...', 'gray');
                     const cmderUrl = "https://ghproxy.cn/https://github.com/cmderdev/cmder/releases/download/v1.3.24/cmder_mini.zip";
-                    execSync(`powershell -NoProfile -Command "Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing"`, { stdio: 'inherit' });
+                    // 尝试使用 Windows 自带的 curl.exe 来显示直观的下载进度条，否则退回到原生请求
+                    execSync(`powershell -NoProfile -Command "if (Get-Command curl.exe -ErrorAction SilentlyContinue) { curl.exe -fSL --progress-bar '${cmderUrl}' -o '${cmderZipPath}' } else { Invoke-WebRequest -Uri '${cmderUrl}' -OutFile '${cmderZipPath}' -UseBasicParsing }"`, { stdio: 'inherit' });
                     
                     log('➤ 正在解压...', 'gray');
                     // 采用 PowerShell 原生解压，向下兼容所有 Win10/11，比 tar 更稳妥
