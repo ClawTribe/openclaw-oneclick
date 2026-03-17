@@ -406,8 +406,9 @@ async function configFeishu() {
                 const runBatPath = path.join(tempDir, 'run_lark.bat');
                 fs.writeFileSync(runBatPath, '@echo off\r\nchcp 65001 >nul\r\necho 正在启动飞书官方安装向导...\r\ncall npx -y @larksuite/openclaw-lark-tools install\r\necho.\r\necho 配置向导已结束。请在确认配置成功后，直接关闭本窗口。\r\npause\r\n', { encoding: 'utf8' });
                 
-                // 启动 Cmder，明确使用 cmd 执行 bat，避免闪退
-                execSync(`start "" "${cmderExePath}" /CMD cmd /c "${runBatPath}"`);
+                // 启动 Cmder，根据报错弹窗，Cmder.exe 并不直接支持 /CMD 传参，必须用 /x 包装给底层的 ConEmu，
+                // 格式要求极为严苛：Cmder.exe /x "/cmd cmd /c ""C:\...\run_lark.bat""" 
+                execSync(`start "" "${cmderExePath}" /x "/cmd cmd /c ""${runBatPath}"""`);
 
                 await ask('\n[确认] 当您在新窗口配置结束并关闭了它后，请按回车键继续...');
                 
