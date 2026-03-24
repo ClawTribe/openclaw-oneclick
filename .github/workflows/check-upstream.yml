@@ -88,8 +88,16 @@ jobs:
           git commit -m "🔄 auto-sync: upstream openclaw ${UPSTREAM_VER}"
           git push origin main
 
-          # 打与上游完全一致的 tag，触发 release workflow
+          # 打与上游完全一致的 tag
           git tag "$TAG"
           git push origin "$TAG"
 
-          echo "🎉 已自动创建 tag: ${TAG}（与上游一致），release workflow 将自动触发构建"
+          # 使用 workflow_dispatch 显式触发 release workflow。
+          # 由于以上 push/tag 由 GITHUB_TOKEN 发起，GitHub 默认不会再级联触发其他 workflow。
+          curl -sfSL -X POST \
+            -H "Authorization: token ${GITHUB_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/workflows/release.yml/dispatches \
+            -d '{"ref":"main","inputs":{"core_version":"'"${UPSTREAM_VER}"'"}}'
+
+          echo "🎉 已自动创建 tag: ${TAG}（与上游一致），并已显式触发 release workflow 构建"
