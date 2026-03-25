@@ -18,6 +18,8 @@ jobs:
   build:
     name: Build for ${{ matrix.artifact_name }}
     runs-on: ${{ matrix.os }}
+    outputs:
+      release_tag: ${{ steps.resolve_version.outputs.release_tag }}
     strategy:
       fail-fast: false
       matrix:
@@ -58,7 +60,14 @@ jobs:
             exit 1
           fi
           echo "core_version=${CORE_VER}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "push" ] && [ "${{ github.ref_type }}" = "tag" ]; then
+            RELEASE_TAG="${{ github.ref_name }}"
+          else
+            RELEASE_TAG="$CORE_VER"
+          fi
+          echo "release_tag=${RELEASE_TAG}" >> "$GITHUB_OUTPUT"
           echo "📦 Using OpenClaw Core version: ${CORE_VER}"
+          echo "🏷️ Release tag: ${RELEASE_TAG}"
 
       - name: Download & Extract Official OpenClaw Core
         shell: bash
@@ -213,6 +222,7 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.build.outputs.release_tag }}
           files: all_bins/OpenClaw-*.zip
           generate_release_notes: true
         env:
