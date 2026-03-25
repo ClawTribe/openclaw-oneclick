@@ -174,8 +174,22 @@ jobs:
           cd release_bundle
           zip_name="OpenClaw-${{ matrix.artifact_name }}.zip"
           if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-              # 改用 7z，速度比 Compress-Archive 快 20 倍
-              7z a -tzip "../$zip_name" ./*
+              # 改用 7z，速度比 Compress-Archive 快 20 倍。
+              # 仅在排除路径实际存在时才传给 7z，避免缺失目录触发 Scan WARNINGS 并返回 exit code 1。
+              exclude_candidates=(
+                  "./dist-runtime/extensions/discord/node_modules"
+                  "./dist-runtime/extensions/feishu/node_modules"
+                  "./dist-runtime/extensions/slack/node_modules"
+                  "./dist-runtime/extensions/telegram/node_modules"
+              )
+              seven_zip_args=()
+              for exclude_path in "${exclude_candidates[@]}"; do
+                  if [[ -e "$exclude_path" ]]; then
+                      seven_zip_args+=("-xr!${exclude_path#./}")
+                  fi
+              done
+
+              7z a -tzip "../$zip_name" ./* "${seven_zip_args[@]}"
           else
               zip -9 -r "../$zip_name" ./*
           fi
