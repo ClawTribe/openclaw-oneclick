@@ -7,6 +7,7 @@ on:
   workflow_dispatch:  # 也支持手动触发检查
 
 permissions:
+  actions: write
   contents: write
 
 jobs:
