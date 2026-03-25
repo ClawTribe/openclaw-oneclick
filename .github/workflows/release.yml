@@ -49,11 +49,16 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # 如果手动触发时指定了版本，使用指定版本；否则自动获取最新 release
+          # 如果手动触发时指定了版本，使用指定版本；否则直接读取 tags 并按版本号选最大值。
+          # 不使用 releases/latest，避免因上游重新发布/置顶旧 release 拿到过时版本。
           if [ -n "${{ github.event.inputs.core_version }}" ]; then
             CORE_VER="${{ github.event.inputs.core_version }}"
           else
-            CORE_VER=$(curl -sfSL -H "Authorization: token ${GH_TOKEN}" https://api.github.com/repos/openclaw/openclaw/releases/latest | jq -r '.tag_name')
+            CORE_VER=$(curl -sfSL -H "Authorization: token ${GH_TOKEN}" https://api.github.com/repos/openclaw/openclaw/tags?per_page=100 | \
+              jq -r '.[].name' | \
+              grep -E '^v[0-9]{4}\.[0-9]+\.[0-9]+(-[0-9]+)?$' | \
+              sort -rV | \
+              head -n 1)
           fi
           if [ -z "$CORE_VER" ] || [ "$CORE_VER" = "null" ]; then
             echo "❌ 无法获取 OpenClaw Core 最新版本"
