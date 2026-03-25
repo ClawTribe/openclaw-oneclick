@@ -38,6 +38,14 @@ function ask(q) {
     return new Promise(resolve => rl.question(q, resolve));
 }
 
+function toEnvKey(providerId) {
+    return providerId
+        .trim()
+        .replace(/[^a-zA-Z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '')
+        .toUpperCase() + '_API_KEY';
+}
+
 // 读取配置
 function readConfig() {
     if (!fs.existsSync(CONFIG_PATH)) return {};
@@ -163,11 +171,8 @@ async function configModel() {
             return;
         }
         
-        // 输入模型名称
-        // 允许两种写法：
-        // - 仅模型：qwen3.5-plus
-        // - 带供应商前缀：bailian/qwen3.5-plus（会把 bailian 作为 providerId）
-        model = await ask('请输入模型名称 (例如 qwen3.5-plus 或 bailian/qwen3.5-plus): ');
+        // 输入模型名称（必须显式包含 provider 前缀）
+        model = await ask('请输入模型名称 (格式: provider/model，例如 bailian/qwen-3.5): ');
         if (!model || model.trim() === '') {
             log('模型名称不能为空', 'red');
             await ask('按回车键继续...');
@@ -186,25 +191,25 @@ async function configModel() {
         // OpenClaw 配置规范（参考官方 docs）：
         // - providers.<id>.apiKey / authHeader，而不是 auth: 'bearer'
         // - models.mode 建议显式使用 merge，避免覆盖用户已有 providers
-        config.env.OPENAI_API_KEY = apiKey.trim();
         if (!config.models.mode) config.models.mode = 'merge';
 
-        // 如果用户输入了 providerId/modelId（如 bailian/qwen3.5-plus），则：
-        // - providerId 取第一个片段 bailian
-        // - modelId 取剩余部分 qwen3.5-plus（支持未来模型名里包含 / 的情况）
         const rawModelInput = model.trim();
         const segs = rawModelInput.split('/').filter(Boolean);
-        const providerId = segs.length >= 2 ? segs.shift() : 'custom-openai';
-        const modelId = segs.length >= 1 ? segs.join('/') : rawModelInput;
-
-        // 如果从 custom-openai 迁移到其它 providerId（例如 bailian），清理旧 key，避免用户误用
-        if (providerId !== 'custom-openai' && config.models.providers['custom-openai']) {
-            delete config.models.providers['custom-openai'];
+        if (segs.length < 2) {
+            log('模型名称格式错误，必须使用 provider/model，例如 bailian/qwen-3.5', 'red');
+            await ask('按回车键继续...');
+            return;
         }
+
+        const providerId = segs.shift();
+        const modelId = segs.join('/');
+        const envKey = toEnvKey(providerId);
+
+        config.env[envKey] = apiKey.trim();
 
         config.models.providers[providerId] = {
             baseUrl: baseUrl.trim(),
-            apiKey: "${OPENAI_API_KEY}",
+            apiKey: '${' + envKey + '}',
             api: 'openai-completions',
             authHeader: true,
             models: [{ id: modelId, name: modelId }]
@@ -215,6 +220,9 @@ async function configModel() {
         
         console.log('');
         log('✓ 自定义 API 配置已保存！', 'green');
+        log(`  Provider: ${providerId}`, 'gray');
+        log(`  Env Key: ${envKey}`, 'gray');
+        log(`  Model: ${providerId}/${modelId}`, 'gray');
         console.log('');
         
         const restart = await ask('是否立即重启网关使配置生效? (Y/n): ');
